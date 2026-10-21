@@ -155,15 +155,21 @@ Cách dùng cho 2 máy (ở đây là **PC-01** và **PC-02**):
 - **Mỗi máy một bot riêng.** Telegram chỉ giao mỗi update cho một nơi, nên hai máy dùng chung một token sẽ tranh nhau lệnh và không biết máy nào nhận. Tạo bot thứ nhất cho PC-01, bot thứ hai cho PC-02 (@BotFather → `/newbot`).
 - **Mỗi máy một `machine`.** Video notification ghi rõ máy: `🖥️ Máy: PC-01` hoặc `🖥️ Máy: PC-02`. Đặt bằng `--machine` khi cài, hoặc sửa `"machine"` trong `notify.json` / `bridge.json`.
 - **Thêm cả hai bot vào nhóm** rồi gọi đúng bot: `/status@BotPC01`, `/run@BotPC02 …`, hoặc nhắc `@BotPC01` trong tin thường. Mỗi bridge bỏ qua lệnh gửi cho bot khác nên không có chuyện hai máy cùng trả lời.
-- **Cài trên Mac (PC-02):**
+- **Cài trên PC-02 (Windows):**
 
-  ```sh
-  curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "<TOKEN_BOT_PC02>" --chat-id "-5390750330" --machine "PC-02"
+  ```powershell
+  # a) task-notify — thông báo video
+  $s = irm https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.ps1
+  & ([scriptblock]::Create($s)) -Token "<TOKEN_BOT_PC02>" -ChatId "-5390750330" -Machine "PC-02"
+
+  # b) bridge — điều khiển PC-02 từ Telegram
   git clone https://github.com/duycutecun/opencode-task-notify.git
-  cd opencode-task-notify/bridge && chmod +x bridge.sh
-  ./bridge.sh install --owner 7152973094 --machine PC-02
-  ./bridge.sh start
+  cd opencode-task-notify\bridge
+  .\bridge.ps1 install -OwnerId 7152973094 -Machine "PC-02"
+  .\bridge.ps1 start
   ```
+
+  macOS / Linux dùng `install.sh` + `bridge.sh` — xem [`bridge/README.md`](bridge/README.md).
 
 - Mỗi máy giữ token bot của riêng nó trong `notify.json`; bridge lấy token đó từ `notify.json` nếu `bridge.json` không ghi `bot_token`.
 

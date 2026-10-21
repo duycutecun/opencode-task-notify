@@ -20,15 +20,15 @@ The bridge can reuse the bot token from `task-notify`, so there is nothing else 
 
 ```powershell
 cd bridge
-.\bridge.ps1 install -OwnerId 123456789
+.\bridge.ps1 install -OwnerId 123456789 -Machine PC-01
 .\bridge.ps1 start
 .\bridge.ps1 status
 ```
 
 `install` writes `~/.config/opencode/bridge.json`, creates the default work folder
 `~/opencode-workspace`, and copies the bot token from `notify.json` when present.
-Add `-WorkDir "C:\path\to\project"` to choose another default folder, or `-Autostart`
-to add a shortcut to the Windows Startup folder.
+Add `-WorkDir "C:\path\to\project"` to choose another default folder, `-Machine "PC-02"`
+to set the machine name, or `-Autostart` to add a shortcut to the Windows Startup folder.
 
 macOS / Linux:
 
@@ -121,8 +121,9 @@ machine and the other machine would never see them. Use one bot per computer
 4. Each bridge ignores commands addressed to the other bot, so only the intended
    computer answers.
 
-On the Mac, install and start the bridge with `./bridge.sh install ...` and
-`./bridge.sh start` as shown above.
+On Windows use `bridge.ps1 install|start|status`; on macOS/Linux use
+`bridge.sh install|start|status` as shown above. Each computer runs its own
+bridge with its own bot token, so the two never compete for the same update.
 
 ## Security
 

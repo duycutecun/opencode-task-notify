@@ -2,15 +2,16 @@
 # Works without git: only PowerShell and Node.js 18+ are required.
 #
 #   $s = irm https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.ps1
-#   & ([scriptblock]::Create($s)) -Token "123456:ABC..." -ChatId "7152973094"
+#   & ([scriptblock]::Create($s)) -Token "123456:ABC..." -ChatId "7152973094" -Machine "PC-01"
 #
 # Or save it first:
 #   iwr https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.ps1 -OutFile "$env:TEMP\tn.ps1"
-#   & "$env:TEMP\tn.ps1" -Token "123456:ABC..." -ChatId "7152973094"
+#   & "$env:TEMP\tn.ps1" -Token "123456:ABC..." -ChatId "7152973094" -Machine "PC-01"
 
 param(
     [string]$Token,
     [string]$ChatId,
+    [string]$Machine,
     [string]$ApiBase,
     [string]$ConfigDir,
     [switch]$NoOpenMontage,
@@ -45,6 +46,7 @@ try {
     $installArgs = @{}
     if ($Token) { $installArgs.Token = $Token }
     if ($ChatId) { $installArgs.ChatId = $ChatId }
+    if ($Machine) { $installArgs.Machine = $Machine }
     if ($ApiBase) { $installArgs.ApiBase = $ApiBase }
     if ($ConfigDir) { $installArgs.ConfigDir = $ConfigDir }
     if ($NoOpenMontage) { $installArgs.NoOpenMontage = $true }

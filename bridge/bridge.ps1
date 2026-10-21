@@ -14,6 +14,8 @@ param(
     [string]$Action = "status",
     [string]$OwnerId,
     [string]$WorkDir,
+    [string]$Machine,
+    [string]$ConfigDir,
     [switch]$Autostart
 )
 
@@ -21,7 +23,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = $PSScriptRoot
 $bridgeScript = Join-Path $scriptDir "bridge.mjs"
-$configDir = Join-Path $HOME ".config\opencode"
+$configDir = if ($ConfigDir) { $ConfigDir } else { Join-Path $HOME ".config\opencode" }
 $configFile = Join-Path $configDir "bridge.json"
 $pidFile = Join-Path $configDir "bridge.pid"
 $logFile = Join-Path $configDir "bridge.log"
@@ -65,9 +67,10 @@ function Install-Bridge {
             throw "Pass -OwnerId <your numeric Telegram user id> so only you can command the bot."
         }
         $dir = if ($WorkDir) { $WorkDir } else { Join-Path $HOME "opencode-workspace" }
+        $machineName = if ($Machine) { $Machine } else { $env:COMPUTERNAME }
         $config = [ordered]@{
             bot_token              = $token
-            machine                = $env:COMPUTERNAME
+            machine                = $machineName
             allowed_user_ids       = @($owner)
             workdir                = $dir
             auto_approve           = $true
@@ -119,6 +122,7 @@ function Start-Bridge {
     }
     $nodePath = (Get-Command node).Source
     $commandLine = "`"$nodePath`" `"$bridgeScript`""
+    if ($ConfigDir) { $env:BRIDGE_CONFIG = $configFile }
     $created = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
         CommandLine      = $commandLine
         CurrentDirectory = $scriptDir
@@ -161,6 +165,7 @@ function Show-Status {
     }
     if (Test-Path $configFile) {
         $config = Get-Content $configFile -Raw | ConvertFrom-Json
+        Write-Host "Machine: $($config.machine)"
         Write-Host "Workdir: $($config.workdir)"
         Write-Host "Allowed users: $($config.allowed_user_ids -join ', ')"
         $token = $config.bot_token
