@@ -1,21 +1,18 @@
-# task-notify
+﻿# task-notify
 
-Skill cho [OpenCode](https://opencode.ai): khi AI làm xong việc, điện thoại bạn rung.
+Skill cho [OpenCode](https://opencode.ai): khi AI render xong video, điện thoại bạn rung.
 
-Gửi tin nhắn Telegram khi agent hoàn thành task, khi render xong video, khi build fail, hoặc khi đang chờ bạn quyết định — kèm đường dẫn file để bạn mở kiểm tra ngay.
+Gửi tin nhắn Telegram kèm đường dẫn file mỗi khi có video thành phẩm. **Chỉ báo khi tạo xong video** — sửa code, chạy test, viết tài liệu hay trả lời câu hỏi thì không làm phiền bạn.
+
+## Phạm vi
+
+Chỉ một trường hợp được tự động gửi: **video đã render xong và file nằm trên đĩa**.
+
+Không gửi thông báo khi: sửa code, fix bug, chạy test, viết tài liệu, nghiên cứu, trả lời câu hỏi, hay kết thúc phiên làm việc. Những tin đó là nhiễu.
+
+Muốn báo thêm việc khác thì gọi script bằng tay — xem [Dùng tay (tùy chọn)](#dùng-tay-tùy-chọn).
 
 ## Tin nhắn trông thế nào
-
-Task thường:
-
-```
-✅ Fixed login race
-
-Retry once on 409, 42/42 tests pass.
-
-my-app · 17:05 21-10
-OpenCode
-```
 
 Video xong:
 
@@ -56,7 +53,7 @@ chmod +x install.sh
 Installer sẽ:
 
 1. Copy skill vào `~/.config/opencode/skills/task-notify/` (trên Windows: `C:\Users\<bạn>\.config\opencode\skills\task-notify\`).
-2. Thêm luật thông báo vào `~/.config/opencode/AGENTS.md` để **mọi project** đều dùng.
+2. Thêm luật **chỉ báo khi tạo xong video** vào `~/.config/opencode/AGENTS.md` để **mọi project** đều dùng.
 3. Tạo `~/.config/opencode/notify.json` để chứa bot token.
 4. Nếu tìm thấy OpenMontage (`~/OpenMontage`), vá luôn `AGENT_GUIDE.md` để thông báo chạy ngay ở stage `compose`.
 
@@ -96,7 +93,9 @@ Tùy chọn:
 
 Nếu dùng nhóm Telegram: thêm bot vào nhóm, gửi một tin trong nhóm, rồi chạy `--setup`.
 
-## Dùng tay
+## Dùng tay (tùy chọn)
+
+Các lệnh dưới đây không tự chạy — chỉ dùng khi bạn muốn báo thêm việc ngoài video.
 
 ```sh
 # task xong
@@ -138,7 +137,7 @@ Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `-
 ## Cách agent dùng
 
 - `skills/task-notify/SKILL.md` dạy agent khi nào nên gửi, viết nội dung thế nào, và xử lý lỗi ra sao.
-- Block trong `AGENTS.md` là luật cứng: xong task → gọi script trước khi trả lời.
+- Block trong `AGENTS.md` là luật cứng: **render xong video → gọi script trước khi trả lời**. Task khác không gọi.
 - Block trong `AGENT_GUIDE.md` của OpenMontage: render xong `final.mp4` → gửi tin kèm đường dẫn, ngay trong stage `compose`.
 
 Nguyên tắc chung: **một tin cho một việc**, chỉ báo thành phẩm, không dán stack trace hay token, gửi lỗi thì không được làm fail task.
