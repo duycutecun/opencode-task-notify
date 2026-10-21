@@ -30,6 +30,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const STATUS = {
   ok: { emoji: "\u2705", label: "Done" },
@@ -66,6 +67,9 @@ function parseArgs(argv) {
     else if (arg === "--project") opts.project = argv[++i];
     else if (arg === "--video") opts.video = argv[++i];
     else if (arg === "--name") opts.name = argv[++i];
+    else if (arg === "--attach") opts.attach = true;
+    else if (arg === "--no-attach") opts.attach = false;
+    else if (arg === "--no-compress") opts.compress = false;
     else if (arg === "--chat") opts.chat = argv[++i];
     else if (arg === "--silent") opts.silent = true;
     else if (arg === "--json") opts.json = true;
@@ -87,8 +91,10 @@ function usage() {
       "       node notify.mjs --whoami    show the bot and chat_id in use",
       "       node notify.mjs --test      send a test message",
       "       node notify.mjs --dry-run   print the formatted message without sending",
-      "       node notify.mjs --video <file-or-folder> [--name <video title>]",
+      "       node notify.mjs --video <file-or-folder> [--name <video title>] [--no-attach]",
       "                                   announce a finished video (newest mp4 if a folder is given)",
+      "                                   sends the video itself when it fits in Telegram's 50 MB upload,",
+      "                                   otherwise a compressed 720p preview; --no-attach sends text only",
     ].join("\n"),
   );
 }
@@ -181,7 +187,7 @@ function formatBytes(bytes) {
   return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
-function buildVideoMessage(opts) {
+function resolveVideo(opts) {
   if (!opts.video) throw Object.assign(new Error("--video needs a file or folder path"), { exitCode: 2 });
 
   const target = expandPath(opts.video);
@@ -200,8 +206,10 @@ function buildVideoMessage(opts) {
     stat = newest;
   }
 
-  const name = videoName(file, opts.name);
-  const time = new Date().toLocaleString("vi-VN", {
+  return { file, size: stat.size, name: videoName(file, opts.name) };
+}
+
+function buildVideoMessage(opts, resolved = resolveVideo(opts)) {  const time = new Date().toLocaleString("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
     day: "2-digit",
@@ -209,11 +217,11 @@ function buildVideoMessage(opts) {
   });
 
   const lines = [
-    `\u{1F3AC} <b>Đã tạo xong video ${escapeHtml(name)}</b>`,
+    `\u{1F3AC} <b>Đã tạo xong video ${escapeHtml(resolved.name)}</b>`,
     "",
-    `Lưu tại: <code>${escapeHtml(file)}</code>`,
+    `Lưu tại: <code>${escapeHtml(resolved.file)}</code>`,
   ];
-  const size = formatBytes(stat.size);
+  const size = formatBytes(resolved.size);
   if (size) lines.push(`Dung lượng: ${size} \u00B7 ${time}`);
   lines.push("", "Vui lòng kiểm tra.");
   return lines.join("\n");
@@ -244,13 +252,62 @@ function buildMessage(opts, config) {
   return lines.join("\n");
 }
 
-async function send(token, chatId, text, silent) {  return telegram(token, "sendMessage", {
+async function send(token, chatId, text, silent) {
+  return telegram(token, "sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: "HTML",
     disable_notification: Boolean(silent),
     link_preview_options: { is_disabled: true },
   });
+}
+
+const UPLOAD_LIMIT = 49 * 1024 * 1024; // Telegram Bot API caps uploads at 50 MB
+
+function compressPreview(file) {
+  const out = path.join(os.tmpdir(), `task-notify-preview-${process.pid}.mp4`);
+  const attempts = [
+    ["-vf", "scale=-2:720", "-crf", "30"],
+    ["-vf", "scale=-2:480", "-crf", "33"],
+  ];
+  for (const extra of attempts) {
+    const result = spawnSync(
+      "ffmpeg",
+      [
+        "-y", "-loglevel", "error", "-i", file,
+        "-c:v", "libx264", ...extra,
+        "-preset", "veryfast", "-c:a", "aac", "-b:a", "96k",
+        "-movflags", "+faststart", out,
+      ],
+      { stdio: "ignore" },
+    );
+    if (result.status === 0 && fs.existsSync(out) && fs.statSync(out).size <= UPLOAD_LIMIT) {
+      return out;
+    }
+  }
+  fs.rmSync(out, { force: true });
+  return null;
+}
+
+async function sendVideoFile(token, chatId, file, caption, silent) {
+  const form = new FormData();
+  form.set("chat_id", String(chatId));
+  form.set("caption", caption);
+  form.set("parse_mode", "HTML");
+  form.set("supports_streaming", "true");
+  form.set("disable_notification", String(Boolean(silent)));
+  form.set("video", new Blob([fs.readFileSync(file)], { type: "video/mp4" }), path.basename(file));
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
+    method: "POST",
+    body: form,
+    signal: AbortSignal.timeout(300000),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.ok) {
+    throw new Error(`Telegram video upload failed: ${data?.description ?? response.status}`);
+  }
+  return data.result;
 }
 
 async function discoverChatId(token) {
@@ -281,7 +338,21 @@ async function main() {
   }
 
   if (opts.dryRun) {
-    console.log(opts.video ? buildVideoMessage(opts) : buildMessage(opts, config));
+    if (!opts.video) {
+      console.log(buildMessage(opts, config));
+      return 0;
+    }
+    const resolved = resolveVideo(opts);
+    console.log(buildVideoMessage(opts, resolved));
+    const attach = opts.attach !== false;
+    const plan = !attach
+      ? "text only (--no-attach)"
+      : resolved.size <= UPLOAD_LIMIT
+        ? "attach video"
+        : opts.compress === false
+          ? "over 50 MB, cannot attach"
+          : "attach compressed 720p preview via ffmpeg";
+    console.log(`\n[dry-run] ${formatBytes(resolved.size)} \u2192 ${plan}`);
     return 0;
   }
 
@@ -360,7 +431,49 @@ async function main() {
     if (!opts.title) opts.title = "Notification test";
   }
 
-  const text = opts.video ? buildVideoMessage(opts) : buildMessage(opts, config);
+  if (opts.video) {
+    const resolved = resolveVideo(opts);
+    const caption = buildVideoMessage(opts, resolved);
+
+    if (opts.attach !== false) {
+      let file = resolved.file;
+      let compressed = false;
+      if (fs.statSync(file).size > UPLOAD_LIMIT) {
+        if (opts.compress === false) {
+          console.error("Video is over Telegram's 50 MB upload limit; sending text only (--no-compress).");
+        } else {
+          const preview = compressPreview(resolved.file);
+          if (preview) {
+            file = preview;
+            compressed = true;
+          } else {
+            console.error("Could not compress the video under 50 MB (is ffmpeg installed?); sending text only.");
+          }
+        }
+      }
+
+      if (fs.statSync(file).size <= UPLOAD_LIMIT) {
+        try {
+          const result = await sendVideoFile(token, chatId, file, caption, opts.silent);
+          console.log(
+            `Sent video to chat ${result.chat.id} (message ${result.message_id})` +
+              (compressed ? " \u2014 compressed preview" : ""),
+          );
+          return 0;
+        } catch (error) {
+          console.error(`Video upload failed (${error.message}); sending text instead.`);
+        } finally {
+          if (compressed) fs.rmSync(file, { force: true });
+        }
+      }
+    }
+
+    const result = await send(token, chatId, caption, opts.silent);
+    console.log(`Sent to chat ${result.chat.id} (message ${result.message_id})`);
+    return 0;
+  }
+
+  const text = buildMessage(opts, config);
   const result = await send(token, chatId, text, opts.silent);
   if (opts.json) console.log(JSON.stringify(result, null, 2));
   else console.log(`Sent to chat ${result.chat.id} (message ${result.message_id})`);

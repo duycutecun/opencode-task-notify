@@ -116,6 +116,22 @@ node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --dry-run --video "$
 
 `$HOME` hoạt động trong cả PowerShell và bash. Trên Windows bạn cũng có thể dùng đường dẫn tuyệt đối mà installer đã ghi vào `AGENTS.md`.
 
+### Gửi kèm video vào chat
+
+Mặc định `--video` **gửi luôn file video** vào Telegram, không chỉ đường dẫn:
+
+| Kích thước file | Cách gửi |
+|---|---|
+| ≤ 50 MB | Gửi nguyên file, phát được trong chat |
+| > 50 MB | Nén preview 720p bằng `ffmpeg` rồi gửi, caption vẫn giữ đường dẫn file gốc |
+
+- Cần `ffmpeg` trong `PATH` để nén. Không có ffmpeg thì script gửi tin nhắn văn bản kèm đường dẫn (không fail).
+- `--no-attach`: chỉ gửi tin nhắn, không gửi file.
+- `--no-compress`: không nén; file > 50 MB sẽ chỉ gửi tin nhắn.
+- `--dry-run` in ra kế hoạch, ví dụ `[dry-run] 85 MB → attach compressed 720p preview via ffmpeg`.
+
+Giới hạn 50 MB là của **Telegram Bot API cloud** (mọi loại file). Muốn gửi nguyên file 50 MB–2 GB phải tự dựng [local Bot API server](https://core.telegram.org/bots/api#using-a-local-bot-api-server) với `api_id`/`api_hash`, rồi trỏ script sang server đó — ngoài phạm vi repo này.
+
 Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `--name`, `--chat`, `--test`, `--setup`, `--whoami`, `--dry-run`, `--json`, `--help`.
 
 ## Cách agent dùng
