@@ -131,7 +131,7 @@ node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --test
 ## Cấu hình bot (một lần)
 
 1. Mở Telegram, chat với **@BotFather**, gõ `/newbot`, đặt tên → nhận token dạng `123456:ABC-DEF...`.
-2. Dán token vào `~/.config/opencode/notify.json`:
+2. Dán token vào `~/.config/opencode/notify.json` (mẫu: [`notify.example.json`](notify.example.json)):
 
    ```json
    {

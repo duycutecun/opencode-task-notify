@@ -12,6 +12,7 @@ param(
     [string]$Token,
     [string]$ChatId,
     [string]$ApiBase,
+    [string]$ConfigDir,
     [switch]$NoOpenMontage,
     [switch]$DryRun,
     [string]$Ref = "main"
@@ -41,15 +42,16 @@ try {
     $installer = Join-Path $root.FullName "install.ps1"
     if (-not (Test-Path $installer)) { throw "install.ps1 not found in the downloaded archive." }
 
-    $arguments = @()
-    if ($Token) { $arguments += @("-Token", $Token) }
-    if ($ChatId) { $arguments += @("-ChatId", $ChatId) }
-    if ($ApiBase) { $arguments += @("-ApiBase", $ApiBase) }
-    if ($NoOpenMontage) { $arguments += "-NoOpenMontage" }
-    if ($DryRun) { $arguments += "-DryRun" }
+    $installArgs = @{}
+    if ($Token) { $installArgs.Token = $Token }
+    if ($ChatId) { $installArgs.ChatId = $ChatId }
+    if ($ApiBase) { $installArgs.ApiBase = $ApiBase }
+    if ($ConfigDir) { $installArgs.ConfigDir = $ConfigDir }
+    if ($NoOpenMontage) { $installArgs.NoOpenMontage = $true }
+    if ($DryRun) { $installArgs.DryRun = $true }
 
     Write-Step "Running installer"
-    & $installer @arguments
+    & $installer @installArgs
     if ($LASTEXITCODE -ne 0) { throw "Installer exited with code $LASTEXITCODE." }
 
     Write-Host ""
