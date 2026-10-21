@@ -212,6 +212,20 @@ Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `-
 
 Nguyên tắc chung: **một tin cho một việc**, chỉ báo thành phẩm, không dán stack trace hay token, gửi lỗi thì không được làm fail task.
 
+## Chat với bot để giao việc (bridge, tùy chọn)
+
+Repo có thêm cầu nối Telegram ↔ OpenCode trong [`bridge/`](bridge/README.md): nhắn cho bot, bot chạy OpenCode trên máy này rồi trả kết quả về chat.
+
+```powershell
+cd bridge
+.\bridge.ps1 install -OwnerId <telegram user id>
+.\bridge.ps1 start
+```
+
+Sau đó nhắn `/help`, `/run <yêu cầu>`, `/status`, `/stop`, `/new`, hoặc `/dir <thư mục>`. Trong nhóm, tin nhắn thường phải nhắc `@bot` (lệnh `/…` thì không cần). Mặc định bot làm việc trong `~/opencode-workspace`.
+
+Bridge dùng chung token với `notify.json`. Nó chỉ nhận lệnh từ các user trong `allowed_user_ids` — **đây là quyền chạy lệnh shell trên máy bạn**, nên chỉ thêm người bạn tin tưởng. Không chạy `notify.mjs --setup` để dò chat trong lúc bridge đang chạy (cả hai cùng gọi `getUpdates`).
+
 ## Cấu hình nâng cao
 
 | Biến / trường | Ý nghĩa |
@@ -266,6 +280,10 @@ opencode-task-notify/
 │   ├── README.md
 │   ├── docker-compose.yml
 │   └── server.ps1
+├── bridge/             # chat Telegram → OpenCode (tùy chọn)
+│   ├── README.md
+│   ├── bridge.mjs
+│   └── bridge.ps1
 ├── AGENTS.md           # hướng dẫn cài đặt cho AI agent
 ├── bootstrap.ps1       # tải + cài, không cần git (Windows)
 ├── bootstrap.sh        # tải + cài, không cần git (macOS/Linux)
@@ -277,7 +295,7 @@ opencode-task-notify/
 
 ## English
 
-A Telegram notification skill for OpenCode. Install with `install.ps1` (Windows) or `install.sh` (macOS/Linux), or run `bootstrap.ps1` / `bootstrap.sh` to download and install without git. It copies the skill into your OpenCode config and adds a global rule so agents notify you **only when a video render finishes**. Then create a bot with @BotFather, put the token in `~/.config/opencode/notify.json`, and run `notify.mjs --setup`. To install on another machine with the same bot, reuse the same token and chat id.
+A Telegram notification skill for OpenCode. Install with `install.ps1` (Windows) or `install.sh` (macOS/Linux), or run `bootstrap.ps1` / `bootstrap.sh` to download and install without git. It copies the skill into your OpenCode config and adds a global rule so agents notify you **only when a video render finishes**. Then create a bot with @BotFather, put the token in `~/.config/opencode/notify.json`, and run `notify.mjs --setup`. To install on another machine with the same bot, reuse the same token and chat id. The optional [`bridge/`](bridge/README.md) lets you chat with the bot and have it run OpenCode tasks on the machine.
 
 ## License
 

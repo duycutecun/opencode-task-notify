@@ -77,6 +77,24 @@ Telegram's cloud API caps uploads at 50 MB, so larger videos are sent as a compr
 
 Do not configure `api_base` (the local Bot API server) unless the user explicitly asks for original files above 50 MB. It logs the bot out of the cloud API and breaks notifications on any other machine using the same bot.
 
+## Optional: chat with the bot (bridge)
+
+Do not install this part unless the user explicitly asks. It lets Telegram messages run OpenCode tasks on the machine, then replies in the chat.
+
+1. Ask for the numeric Telegram user id that should be allowed to command the bot. Never leave the allow-list empty.
+2. Windows:
+
+   ```powershell
+   cd bridge
+   .\bridge.ps1 install -OwnerId "<user id>"
+   .\bridge.ps1 start
+   .\bridge.ps1 status
+   ```
+
+3. macOS / Linux: write `~/.config/opencode/bridge.json` with `allowed_user_ids`, `workdir`, and optionally `bot_token` (otherwise it is read from `notify.json`), then run `node bridge/bridge.mjs` under a process manager.
+
+Tell the user that this is effectively remote shell access for the allow-listed accounts, that the work folder is a starting point rather than a sandbox, and that group bots may need @BotFather → `/setprivacy` → Disable to see plain messages. Do not run `notify.mjs --setup` while the bridge is running; both consume `getUpdates`.
+
 ## Rules for the installed agent
 
 - Notify only when a video render finishes and the file exists on disk.
