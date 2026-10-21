@@ -139,6 +139,14 @@ Nguyên tắc chung: **một tin cho một việc**, chỉ báo thành phẩm, k
 
 File `notify.json` chứa secret: đừng commit, đừng chia sẻ. Trên macOS/Linux installer đặt quyền `600`.
 
+### Bảo mật token
+
+Repo này **không** chứa token. Mỗi máy giữ token trong `~/.config/opencode/notify.json` (đã nằm trong `.gitignore`).
+
+Muốn dùng cùng một bot cho nhiều máy, chép file `notify.json` sang từng máy bằng tay, hoặc để nó trong password manager / private repo riêng — không đưa vào repo public.
+
+Nếu token từng bị dán vào chat, ảnh chụp màn hình, hay commit: vào @BotFather → `/mybots` → chọn bot → **API Token** → **Revoke current token**, rồi cập nhật lại `notify.json`.
+
 ## Gỡ cài đặt
 
 ```powershell

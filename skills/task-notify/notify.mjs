@@ -368,8 +368,10 @@ async function main() {
 }
 
 main()
-  .then((code) => process.exit(code))
+  .then((code) => {
+    process.exitCode = code;
+  })
   .catch((error) => {
     console.error(`task-notify failed: ${error.message}`);
-    process.exit(error.exitCode ?? 1);
+    process.exitCode = error.exitCode ?? 1;
   });
