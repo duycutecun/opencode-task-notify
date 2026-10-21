@@ -72,6 +72,7 @@ function parseArgs(argv) {
     else if (arg === "--no-compress") opts.compress = false;
     else if (arg === "--api-base") opts.apiBase = argv[++i];
     else if (arg === "--chat") opts.chat = argv[++i];
+    else if (arg === "--token") opts.token = argv[++i];
     else if (arg === "--silent") opts.silent = true;
     else if (arg === "--json") opts.json = true;
     else if (arg === "--dry-run") opts.dryRun = true;
@@ -88,7 +89,7 @@ function usage() {
   console.log(
     [
       "Usage: node notify.mjs [--title <text>] [--status ok|fail|blocked|info] [--silent] <message>",
-      "       node notify.mjs --setup     validate token, discover chat_id, send test",
+      "       node notify.mjs --setup [--token <token>] [--chat <id>]   save token, discover chat_id, send test",
       "       node notify.mjs --whoami    show the bot and chat_id in use",
       "       node notify.mjs --test      send a test message",
       "       node notify.mjs --dry-run   print the formatted message without sending",
@@ -357,7 +358,7 @@ async function discoverChatId(token) {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const config = readConfig();
-  const token = process.env.TELEGRAM_BOT_TOKEN || config.bot_token || "";
+  const token = process.env.TELEGRAM_BOT_TOKEN || opts.token || config.bot_token || "";
   let chatId = opts.chat || process.env.TELEGRAM_CHAT_ID || config.chat_id || "";
 
   API_BASE = (opts.apiBase || process.env.TELEGRAM_API_BASE || config.api_base || "https://api.telegram.org")

@@ -4,6 +4,31 @@ Skill cho [OpenCode](https://opencode.ai): khi AI render xong video, điện tho
 
 Gửi tin nhắn Telegram kèm đường dẫn file mỗi khi có video thành phẩm. **Chỉ báo khi tạo xong video** — sửa code, chạy test, viết tài liệu hay trả lời câu hỏi thì không làm phiền bạn.
 
+## Cài nhanh (không cần git)
+
+Windows — PowerShell, chỉ cần Node.js 18+:
+
+```powershell
+iwr https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.ps1 -OutFile "$env:TEMP\tn.ps1"
+& "$env:TEMP\tn.ps1" -Token "123456:ABC..." -ChatId "7152973094"
+```
+
+macOS / Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "123456:ABC..." --chat-id "7152973094"
+```
+
+Hai script này tải repo về thư mục tạm, chạy installer rồi tự dọn — không cần `git`, không để lại file thừa.
+
+## Dán link cho AI trên máy mới
+
+Gửi cho AI (OpenCode, Claude, Cursor...) đoạn này:
+
+> Cài task-notify từ https://github.com/duycutecun/opencode-task-notify theo `AGENTS.md` trong repo. Bot token: `<token>`. Chat id: `7152973094`.
+
+AI sẽ đọc `AGENTS.md`, clone repo, chạy installer, kiểm tra bằng `--whoami` và `--test`, rồi nhắc bạn khởi động lại OpenCode. Nếu không muốn đưa token vào chat, copy `notify.json` từ máy cũ sang trước, rồi bảo AI cài không cần token.
+
 ## Phạm vi
 
 Chỉ một trường hợp được tự động gửi: **video đã render xong và file nằm trên đĩa**.
@@ -125,6 +150,12 @@ node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --test
    node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --setup
    ```
 
+   Đã biết token và chat id thì gộp làm một bước (dùng cho máy thứ hai):
+
+   ```powershell
+   node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --setup --token "<token>" --chat "7152973094"
+   ```
+
 Nếu dùng nhóm Telegram: thêm bot vào nhóm, gửi một tin trong nhóm, rồi chạy `--setup`.
 
 ## Dùng tay (tùy chọn)
@@ -166,7 +197,7 @@ Mặc định `--video` **gửi luôn file video** vào Telegram, không chỉ �
 
 Giới hạn 50 MB là của **Telegram Bot API cloud** (mọi loại file). Muốn gửi nguyên file 50 MB–2 GB vào chat, chạy Bot API server local — xem [`local-bot-api/`](local-bot-api/README.md). Khi `api_base` trỏ về server đó, script gửi nguyên video bằng `file:///`, không nén.
 
-Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `--name`, `--chat`, `--test`, `--setup`, `--whoami`, `--dry-run`, `--json`, `--help`.
+Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `--name`, `--chat`, `--token`, `--api-base`, `--test`, `--setup`, `--whoami`, `--dry-run`, `--json`, `--help`.
 
 ## Cách agent dùng
 
@@ -230,6 +261,9 @@ opencode-task-notify/
 │   ├── README.md
 │   ├── docker-compose.yml
 │   └── server.ps1
+├── AGENTS.md           # hướng dẫn cài đặt cho AI agent
+├── bootstrap.ps1       # tải + cài, không cần git (Windows)
+├── bootstrap.sh        # tải + cài, không cần git (macOS/Linux)
 ├── install.mjs         # logic cài đặt (đa nền tảng)
 ├── install.ps1         # wrapper Windows
 ├── install.sh          # wrapper macOS/Linux
@@ -238,7 +272,7 @@ opencode-task-notify/
 
 ## English
 
-A Telegram notification skill for OpenCode. Install with `install.ps1` (Windows) or `install.sh` (macOS/Linux); it copies the skill into your OpenCode config, adds a global rule so agents notify you when work finishes, and hooks OpenMontage so finished renders send the output path. Then create a bot with @BotFather, paste the token into `~/.config/opencode/notify.json`, and run `notify.mjs --setup`.
+A Telegram notification skill for OpenCode. Install with `install.ps1` (Windows) or `install.sh` (macOS/Linux), or run `bootstrap.ps1` / `bootstrap.sh` to download and install without git. It copies the skill into your OpenCode config and adds a global rule so agents notify you **only when a video render finishes**. Then create a bot with @BotFather, put the token in `~/.config/opencode/notify.json`, and run `notify.mjs --setup`. To install on another machine with the same bot, reuse the same token and chat id.
 
 ## License
 
