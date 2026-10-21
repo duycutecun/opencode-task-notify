@@ -19,11 +19,12 @@
  *   --silent          Send without phone sound/vibration
  *   --video <path>    Announce a finished video file (or newest video in a folder)
  *   --name <text>     Video title used in the announcement
+ *   --machine <name>  Override the computer name shown in the message
  *   --json            Print the raw Telegram response
  *   --dry-run         Print the formatted message instead of sending it
  *
  * Config: ~/.config/opencode/notify.json  (override with TASK_NOTIFY_CONFIG)
- * Env override: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+ * Env override: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TASK_NOTIFY_MACHINE
  * Exit codes: 0 sent, 1 send failed, 2 not configured / bad usage.
  */
 
@@ -67,6 +68,7 @@ function parseArgs(argv) {
     else if (arg === "--project") opts.project = argv[++i];
     else if (arg === "--video") opts.video = argv[++i];
     else if (arg === "--name") opts.name = argv[++i];
+    else if (arg === "--machine") opts.machine = argv[++i];
     else if (arg === "--attach") opts.attach = true;
     else if (arg === "--no-attach") opts.attach = false;
     else if (arg === "--no-compress") opts.compress = false;
@@ -226,7 +228,18 @@ function resolveVideo(opts) {
   return { file, size: stat.size, name: videoName(file, opts.name) };
 }
 
-function buildVideoMessage(opts, resolved = resolveVideo(opts)) {  const time = new Date().toLocaleString("vi-VN", {
+function machineName(opts, config) {
+  const value =
+    (opts && opts.machine) ||
+    process.env.TASK_NOTIFY_MACHINE ||
+    (config && config.machine) ||
+    os.hostname() ||
+    "unknown";
+  return String(value).trim();
+}
+
+function buildVideoMessage(opts, resolved = resolveVideo(opts), config = {}) {
+  const time = new Date().toLocaleString("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
     day: "2-digit",
@@ -235,6 +248,7 @@ function buildVideoMessage(opts, resolved = resolveVideo(opts)) {  const time = 
 
   const lines = [
     `\u{1F3AC} <b>Đã tạo xong video ${escapeHtml(resolved.name)}</b>`,
+    `\u{1F5A5}\uFE0F Máy: <b>${escapeHtml(machineName(opts, config))}</b>`,
     "",
     `Lưu tại: <code>${escapeHtml(resolved.file)}</code>`,
   ];
@@ -263,7 +277,7 @@ function buildMessage(opts, config) {
     "",
     escapeHtml(body),
     "",
-    `<i>${escapeHtml(project)} \u00B7 ${time}</i>`,
+    `<i>${escapeHtml(project)} \u00B7 ${escapeHtml(machineName(opts, config))} \u00B7 ${time}</i>`,
   ];
   if (config.signature) lines.push(`<i>${escapeHtml(config.signature)}</i>`);
   return lines.join("\n");
@@ -376,7 +390,7 @@ async function main() {
       return 0;
     }
     const resolved = resolveVideo(opts);
-    console.log(buildVideoMessage(opts, resolved));
+    console.log(buildVideoMessage(opts, resolved, config));
     const attach = opts.attach !== false;
     const limit = maxUploadBytes();
     const plan = !attach
@@ -401,6 +415,7 @@ async function main() {
         "  {",
         '    "bot_token": "123456:ABC...",',
         '    "chat_id": "",',
+        '    "machine": "PC-1",',
         '    "signature": "OpenCode"',
         "  }",
         "Get a token from @BotFather in Telegram, then run: node notify.mjs --setup",
@@ -447,6 +462,7 @@ async function main() {
     const me = await telegram(token, "getMe", {});
     console.log(`Bot: @${me.username}`);
     console.log(`chat_id: ${chatId || "(not set — run --setup)"}`);
+    console.log(`machine: ${machineName(opts, config)}`);
     console.log(`api base: ${API_BASE}${isLocalBase() ? " (local — uploads up to 2000 MB)" : ""}`);
     console.log(`config: ${configPath}`);
     return 0;
@@ -471,7 +487,7 @@ async function main() {
 
   if (opts.video) {
     const resolved = resolveVideo(opts);
-    const caption = buildVideoMessage(opts, resolved);
+    const caption = buildVideoMessage(opts, resolved, config);
 
     if (opts.attach !== false) {
       const limit = maxUploadBytes();

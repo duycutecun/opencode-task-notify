@@ -93,6 +93,8 @@ Do not install this part unless the user explicitly asks. It lets Telegram messa
 
 3. macOS / Linux: write `~/.config/opencode/bridge.json` with `allowed_user_ids`, `workdir`, and optionally `bot_token` (otherwise it is read from `notify.json`), then run `node bridge/bridge.mjs` under a process manager.
 
+Never run two bridges with the **same** bot token: Telegram delivers each update to one poller, so commands would go to a random machine. With two computers, create one bot per computer, put both in the group, and address commands as `/status@BotPC1` or mention the bot. Each `bridge.json` should set its own `machine` name (or leave it empty to use the hostname).
+
 Tell the user that this is effectively remote shell access for the allow-listed accounts, that the work folder is a starting point rather than a sandbox, and that group bots may need @BotFather → `/setprivacy` → Disable to see plain messages. Do not run `notify.mjs --setup` while the bridge is running; both consume `getUpdates`.
 
 ## Rules for the installed agent

@@ -66,6 +66,7 @@ function loadConfig() {
   const cfg = readJson(configPath, {});
   const config = {
     bot_token: cfg.bot_token || notify.bot_token || "",
+    machine: String(cfg.machine || os.hostname() || "unknown").trim(),
     allowed_user_ids: (cfg.allowed_user_ids || []).map(String),
     workdir: cfg.workdir || path.join(home, "opencode-workspace"),
     auto_approve: cfg.auto_approve !== false,
@@ -138,6 +139,8 @@ async function telegram(method, payload) {
   }
   return data.result;
 }
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 function splitText(text, limit = 3900) {
   const chunks = [];
@@ -264,27 +267,27 @@ async function runJob(job) {
       const seconds = Math.round((Date.now() - started) / 1000);
       if (idle.outcome === "succeeded") {
         const body = answer || "(không có nội dung trả về)";
-        const chunks = splitText(`✅ Xong (${seconds}s)\n\n${body}`);
+        const chunks = splitText(`✅ Xong (${seconds}s) · ${config.machine}\n\n${body}`);
         await edit(chatId, ack.message_id, chunks[0]);
         for (let index = 1; index < chunks.length; index++) {
           await send(chatId, chunks[index]);
         }
       } else {
         const reason = idle.error?.message || idle.outcome || "unknown";
-        await edit(chatId, ack.message_id, `❌ Lỗi (${seconds}s): ${reason.slice(0, 1000)}`);
+        await edit(chatId, ack.message_id, `❌ Lỗi (${seconds}s) · ${config.machine}: ${reason.slice(0, 1000)}`);
       }
       log("job done", sessionID, idle.outcome, seconds + "s");
       return;
     }
 
     await opencodeApi("post", `/api/session/${sessionID}/interrupt`, {}).catch(() => {});
-    await edit(chatId, ack.message_id, `⏱️ Quá ${config.max_minutes} phút — đã dừng. Gửi /stop để dừng ngay lần sau.`);
+    await edit(chatId, ack.message_id, `⏱️ [${config.machine}] Quá ${config.max_minutes} phút — đã dừng. Gửi /stop để dừng ngay lần sau.`);
     log("job timeout", sessionID);
   } catch (error) {
     log("job error:", error.message);
     const detail = (error.stderr || error.stdout || error.message || "").toString().slice(0, 800);
-    if (ack?.message_id) await edit(chatId, ack.message_id, `❌ Lỗi: ${detail}`);
-    else await send(chatId, `❌ Lỗi: ${detail}`).catch(() => {});
+    if (ack?.message_id) await edit(chatId, ack.message_id, `❌ [${config.machine}] Lỗi: ${detail}`);
+    else await send(chatId, `❌ [${config.machine}] Lỗi: ${detail}`).catch(() => {});
   }
 }
 
@@ -301,7 +304,7 @@ async function processQueue() {
 
 function helpText() {
   return [
-    "🤖 OpenCode bridge",
+    `🤖 OpenCode bridge · ${config.machine}`,
     "",
     "/run <yêu cầu> — giao việc cho OpenCode",
     "/status — phiên hiện tại, thư mục, hàng đợi",
@@ -309,10 +312,11 @@ function helpText() {
     "/new — tạo phiên mới (xóa ngữ cảnh)",
     "/dir — xem thư mục làm việc",
     "/dir <đường dẫn> — đổi thư mục (phiên mới)",
+    "/whoami — máy, user, chat, bot, session",
     "/help — trợ giúp",
     "",
     "Gửi tin nhắn thường (không bắt đầu bằng /) cũng được hiểu là /run.",
-    "Trong nhóm, hãy nhắc @" + (botUsername || "bot") + " hoặc dùng lệnh /.",
+    `Trong nhóm, hãy nhắc @${botUsername || "bot"} hoặc gõ /lệnh@${botUsername || "bot"}.`,
   ].join("\n");
 }
 
@@ -333,12 +337,14 @@ async function handleMessage(message) {
 
   let text = message.text.trim();
   if (chatType !== "private") {
-    const mention = `@${botUsername}`.toLowerCase();
-    const mentioned = text.toLowerCase().includes(mention);
-    if (config.require_mention_in_groups && !mentioned && !text.startsWith("/")) {
+    const commandTarget = text.match(/^\/([A-Za-z0-9_]+)@([A-Za-z0-9_]+)/);
+    if (commandTarget && commandTarget[2].toLowerCase() !== botUsername.toLowerCase()) {
       return;
     }
-    text = text.replace(new RegExp(`@${botUsername}\\b`, "gi"), "").trim();
+    const mention = `@${botUsername}`.toLowerCase();
+    const mentioned = text.toLowerCase().includes(mention);
+    if (config.require_mention_in_groups && !mentioned) return;
+    text = text.replace(new RegExp(`@${escapeRegExp(botUsername)}\\b`, "gi"), "").trim();
   }
 
   const replyTo = message.message_id;
@@ -363,12 +369,31 @@ async function handleMessage(message) {
       const workdir = path.resolve(state.workdirs[chatId] || config.workdir);
       const sessionID = state.sessions[`${chatId}::${workdir}`] || "(chưa có)";
       const lines = [
+        `🖥️ Máy: ${config.machine}`,
+        `🤖 Bot: @${botUsername}`,
         `📁 ${workdir}`,
         `🧠 ${sessionID}`,
         `⚙️ ${active ? "đang chạy" : "rảnh"} · hàng đợi: ${queue.length}`,
         `⏱️ giới hạn: ${config.max_minutes} phút`,
       ];
       await send(chatId, lines.join("\n"), replyTo);
+      return;
+    }
+    if (command === "/whoami" || command === "/id") {
+      const workdir = path.resolve(state.workdirs[chatId] || config.workdir);
+      const sessionID = state.sessions[`${chatId}::${workdir}`] || "(chưa có)";
+      await send(
+        chatId,
+        [
+          `🖥️ Máy: ${config.machine}`,
+          `👤 User: ${userId}`,
+          `💬 Chat: ${chatId} (${chatType})`,
+          `🤖 Bot: @${botUsername}`,
+          `📁 ${workdir}`,
+          `🧠 ${sessionID}`,
+        ].join("\n"),
+        replyTo,
+      );
       return;
     }
     if (command === "/stop") {
@@ -421,7 +446,7 @@ async function handleMessage(message) {
   const position = queue.length + (active ? 1 : 0);
   const ack = await send(
     chatId,
-    position > 0 ? `⏳ Đã xếp hàng (${position})…` : "⏳ Đang xử lý…",
+    position > 0 ? `⏳ [${config.machine}] Đã xếp hàng (${position})…` : `⏳ [${config.machine}] Đang xử lý…`,
     replyTo,
   );
   queue.push({ chatId, text, replyTo, ack });
@@ -430,7 +455,7 @@ async function handleMessage(message) {
 }
 
 async function poll() {
-  log("bridge starting", `pid=${process.pid}`, `opencode=${OPENCODE}`);
+  log("bridge starting", `machine=${config.machine}`, `pid=${process.pid}`, `opencode=${OPENCODE}`);
   if (!config.bot_token) {
     log("missing bot token");
     console.error("Missing bot token. Put bot_token in bridge.json or notify.json.");

@@ -25,6 +25,7 @@ The phone shows:
 
 ```
 🎬 Đã tạo xong video Paris Biểu Tình
+🖥️ Máy: DESKTOP-PKO5RP9
 
 Lưu tại: C:\Users\Minh\OpenMontage\projects\paris-bieu-tinh\renders\final.mp4
 Dung lượng: 85 MB · 17:05 21-10
@@ -35,6 +36,7 @@ Vui lòng kiểm tra.
 ## Video rules
 
 - Always pass `--name` with a human title ("Paris Biểu Tình"), never the project slug.
+- The machine name defaults to the hostname, so notifications from two computers are distinguishable. Override it with `"machine"` in `notify.json`, `TASK_NOTIFY_MACHINE`, or `--machine`.
 - Announce the deliverable only — `renders/final.mp4` or the file the user asked for. No previews, drafts, per-scene renders, or test renders.
 - By default the script **uploads the video into the chat**: original when it is under Telegram's 50 MB cloud cap, otherwise a 720p preview compressed with `ffmpeg`, keeping the full path in the caption. `--no-attach` sends text only.
 - If `api_base` in `notify.json` points at a local Bot API server (e.g. `http://127.0.0.1:8081`), the script sends the original file with a `file:///` URI up to 2 GB and skips compression. `--whoami` shows the active endpoint.

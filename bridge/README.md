@@ -1,13 +1,13 @@
-﻿# Telegram â†” OpenCode bridge
+﻿# Telegram ↔ OpenCode bridge
 
 Chat with your Telegram bot and have it run OpenCode tasks on this machine.
 
 ```
-you (Telegram) â†’ bot â†’ bridge.mjs â†’ OpenCode session in a chosen folder
-                                  â† answer / errors
+you (Telegram) → bot → bridge.mjs → OpenCode session in a chosen folder
+                                  ← answer / errors
 ```
 
-The bridge uses the same bot token as `task-notify`, so there is nothing else to create on Telegram.
+The bridge can reuse the bot token from `task-notify`, so there is nothing else to create on Telegram if you only run it on one computer.
 
 ## What you need
 
@@ -39,16 +39,20 @@ Start it with `node bridge.mjs` (use your process manager of choice for autostar
 | --- | --- |
 | `/run <request>` | Send a task to OpenCode |
 | plain text | Same as `/run` |
-| `/status` | Work folder, session id, queue state |
+| `/status` | Machine, work folder, session id, queue state |
 | `/stop` | Interrupt the running task and clear the queue |
 | `/new` | Forget the current session (fresh context) |
 | `/dir` | Show the work folder |
 | `/dir <path>` | Switch folder (a new session starts there) |
+| `/whoami` | Machine, user id, chat id, bot, session |
 | `/help` | Command list |
 
-In groups, the bot only reacts to commands or to messages that mention it
-(`@YourBot â€¦`). This avoids hijacking normal group chat. Set
-`"require_mention_in_groups": false` to change that.
+In groups, the bot only reacts when it is mentioned: either `@YourBot …` or a
+command with the bot name, such as `/status@YourBot`. This is required when two
+bots share a group, so that commands are not answered twice. Set
+`"require_mention_in_groups": false` only if this bot is alone in the group.
+
+Every answer starts with the machine name, so you can tell which computer replied.
 
 ## Configuration
 
@@ -57,6 +61,7 @@ In groups, the bot only reacts to commands or to messages that mention it
 ```json
 {
   "bot_token": "",
+  "machine": "PC-1",
   "allowed_user_ids": ["123456789"],
   "workdir": "C:/Users/Minh/opencode-workspace",
   "auto_approve": true,
@@ -65,22 +70,45 @@ In groups, the bot only reacts to commands or to messages that mention it
 }
 ```
 
-- `bot_token` â€” optional; falls back to `notify.json`.
-- `allowed_user_ids` â€” the only Telegram users allowed to command the bot. Required.
+- `bot_token` — optional; falls back to `notify.json`.
+- `machine` — name shown in answers and `/status`; defaults to the hostname.
+- `allowed_user_ids` — the only Telegram users allowed to command the bot. Required.
   Everyone else is ignored. Never leave this empty.
-- `workdir` â€” folder the agent starts in. `/dir` can change it per chat.
-- `auto_approve` â€” answer OpenCode permission prompts with "once". When `false`,
+- `workdir` — folder the agent starts in. `/dir` can change it per chat.
+- `auto_approve` — answer OpenCode permission prompts with "once". When `false`,
   prompts are rejected and the task may stop. This is remote code execution by
   design: the allowed user's messages can run tools, edit files, and execute shell
   commands with your account.
-- `require_mention_in_groups` â€” in groups, require `@bot` for plain text.
-- `max_minutes` â€” hard stop for one task.
+- `require_mention_in_groups` — in groups, require `@bot` (or `/command@bot`)
+  before responding. Keep it on when other bots are in the same group.
+- `max_minutes` — hard stop for one task.
 
 Runtime files, kept outside the repository:
 
-- `~/.config/opencode/bridge-state.json` â€” Telegram offset and session ids.
-- `~/.config/opencode/bridge.log` â€” log.
-- `~/.config/opencode/bridge.pid` â€” PID used by `bridge.ps1`.
+- `~/.config/opencode/bridge-state.json` — Telegram offset, session ids, per-chat folders.
+- `~/.config/opencode/bridge.log` — log.
+- `~/.config/opencode/bridge.pid` — PID used by `bridge.ps1`.
+
+## Two computers
+
+Video notifications can share one bot: every message shows `🖥️ Máy: <machine>`, so
+the computers stay distinguishable. Set `machine` per computer (or leave it empty
+and let the hostname fill in).
+
+The bridge is different: **do not run two bridges with the same bot token.**
+Telegram delivers each update to one poller only, so commands would go to a random
+machine and the other machine would never see them. Use one bot per computer:
+
+1. In @BotFather, create a second bot (`/newbot`) for the second computer.
+2. Put its token in that computer's `bridge.json` (`bot_token`), with the same
+   `allowed_user_ids`.
+3. Add both bots to the group. Address commands explicitly:
+   `/status@BotPC1`, `/run@BotPC2 …`, or mention `@BotPC1` in plain text.
+4. Each bridge ignores commands addressed to the other bot, so only the intended
+   computer answers.
+
+If you only need to control one computer, run the bridge on that one only; the other
+continues to send video notifications.
 
 ## Security
 
@@ -92,7 +120,7 @@ Runtime files, kept outside the repository:
 ## Notes and troubleshooting
 
 - **No updates in a group.** Bots have privacy mode on by default and then only see
-  commands. Open @BotFather â†’ `/setprivacy` â†’ select the bot â†’ **Disable**, then remove
+  commands. Open @BotFather → `/setprivacy` → select the bot → **Disable**, then remove
   and re-add the bot to the group. Alternatively make the bot an admin.
 - **`getUpdates` conflict.** The bridge consumes updates with long polling. Do not run
   `notify.mjs --setup` discovery while the bridge is running; stop the bridge first.
@@ -100,8 +128,8 @@ Runtime files, kept outside the repository:
 - **Session not found after cleanup.** Delete the matching entry in
   `bridge-state.json` or send `/new`; the bridge creates a fresh session.
 - **Answers are only sent when the task finishes.** The bridge edits the
-  â€œâ³ Äang xá»­ lÃ½â€¦â€ message into the result.
+  “⏳ Đang xử lý…” message into the result.
 - **OpenCode cannot be found.** Set `"opencode_bin"` in `bridge.json` to the full
   path of the `opencode` executable (on Windows, the `.exe` inside
   `node_modules/@opencode/cli/bin`, not the `.cmd` shim).
-- **One job at a time.** Messages that arrive during a job are queued (max 5).
+- **One job at a time per bridge.** Messages that arrive during a job are queued (max 5).

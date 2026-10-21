@@ -67,6 +67,7 @@ function Install-Bridge {
         $dir = if ($WorkDir) { $WorkDir } else { Join-Path $HOME "opencode-workspace" }
         $config = [ordered]@{
             bot_token              = $token
+            machine                = $env:COMPUTERNAME
             allowed_user_ids       = @($owner)
             workdir                = $dir
             auto_approve           = $true

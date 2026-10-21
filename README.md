@@ -47,12 +47,15 @@ Video xong:
 
 ```
 🎬 Đã tạo xong video Paris Biểu Tình
+🖥️ Máy: DESKTOP-PKO5RP9
 
 Lưu tại: C:\Users\Minh\OpenMontage\projects\paris-bieu-tinh\renders\final.mp4
 Dung lượng: 85 MB · 17:05 21-10
 
 Vui lòng kiểm tra.
 ```
+
+Tên máy tự lấy từ hostname, nên hai máy gửi về cùng một chat vẫn phân biệt được. Đổi bằng `"machine"` trong `notify.json`, biến `TASK_NOTIFY_MACHINE`, hoặc cờ `--machine`.
 
 ## Yêu cầu
 
@@ -132,6 +135,13 @@ node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --test
 - Không cần chạy `--setup` trên máy mới nếu đã có `chat_id`; `--setup` dò chat gần nhất nên có thể chọn nhầm nhóm.
 - Token là mật khẩu của bot: chuyển qua trình quản lý mật khẩu, USB hay mạng nội bộ — đừng dán vào chat công khai.
 - Muốn tạm im một máy: xóa `bot_token` trong `notify.json` của máy đó, hoặc tắt thông báo chat trên Telegram.
+
+### Hai máy tính: phân biệt thông báo và lệnh
+
+- **Thông báo video** dùng chung một bot vẫn ổn: mỗi tin có dòng `🖥️ Máy: <hostname>`. Nếu copy `notify.json` sang máy kia, đừng copy trường `machine` (hoặc đặt tên khác, ví dụ `PC-1` / `PC-2`).
+- **Bridge thì không dùng chung một bot cho hai máy.** Telegram chỉ giao mỗi update cho một nơi, nên hai bridge cùng token sẽ tranh nhau lệnh và bạn không biết máy nào nhận. Tạo **một bot riêng cho mỗi máy** (@BotFather → `/newbot`), mỗi máy một `bridge.json` với `bot_token` riêng, cùng `allowed_user_ids`.
+- Thêm cả hai bot vào nhóm. Khi đó gõ lệnh kèm tên bot: `/status@BotMay1`, `/run@BotMay2 ...`, hoặc nhắc `@BotMay1` trong tin thường. Bridge bỏ qua lệnh gửi cho bot khác, nên không có chuyện cả hai máy cùng trả lời.
+- Nếu chỉ muốn điều khiển một máy, chỉ chạy bridge trên máy đó; máy còn lại chỉ gửi thông báo video.
 
 ## Cấu hình bot (một lần)
 
@@ -222,7 +232,7 @@ cd bridge
 .\bridge.ps1 start
 ```
 
-Sau đó nhắn `/help`, `/run <yêu cầu>`, `/status`, `/stop`, `/new`, hoặc `/dir <thư mục>`. Trong nhóm, tin nhắn thường phải nhắc `@bot` (lệnh `/…` thì không cần). Mặc định bot làm việc trong `~/opencode-workspace`.
+Sau đó nhắn `/help`, `/run <yêu cầu>`, `/status`, `/stop`, `/new`, hoặc `/dir <thư mục>`. Trong nhóm, phải nhắc `@bot` hoặc gõ `/lệnh@bot` (ví dụ `/status@BotCuaBan`); mặc định bot làm việc trong `~/opencode-workspace`.
 
 Bridge dùng chung token với `notify.json`. Nó chỉ nhận lệnh từ các user trong `allowed_user_ids` — **đây là quyền chạy lệnh shell trên máy bạn**, nên chỉ thêm người bạn tin tưởng. Không chạy `notify.mjs --setup` để dò chat trong lúc bridge đang chạy (cả hai cùng gọi `getUpdates`).
 
@@ -231,6 +241,7 @@ Bridge dùng chung token với `notify.json`. Nó chỉ nhận lệnh từ các 
 | Biến / trường | Ý nghĩa |
 |---|---|
 | `bot_token` | Token từ @BotFather |
+| `machine` | Tên máy hiện trong tin nhắn; mặc định lấy hostname, hữu ích khi có nhiều máy |
 | `chat_id` | ID chat/nhóm nhận tin (tự tìm khi chạy `--setup`) |
 | `signature` | Dòng chữ nhỏ cuối tin, mặc định `OpenCode` |
 | `api_base` | Địa chỉ Bot API server, mặc định `https://api.telegram.org`; đặt `http://127.0.0.1:8081` để gửi file tới 2 GB qua server local |
