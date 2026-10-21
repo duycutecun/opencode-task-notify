@@ -415,7 +415,7 @@ async function main() {
         "  {",
         '    "bot_token": "123456:ABC...",',
         '    "chat_id": "",',
-        '    "machine": "PC-1",',
+        '    "machine": "PC-01",',
         '    "signature": "OpenCode"',
         "  }",
         "Get a token from @BotFather in Telegram, then run: node notify.mjs --setup",

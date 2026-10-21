@@ -113,19 +113,19 @@ Chọn một trong ba cách:
 **1. Installer với token + chat_id có sẵn** (nhanh nhất):
 
 ```powershell
-.\install.ps1 -Token "123456:ABC..." -ChatId "-5390750330" -Machine "PC-2"
+.\install.ps1 -Token "123456:ABC..." -ChatId "-5390750330" -Machine "PC-02"
 ```
 
 macOS / Linux:
 
 ```sh
-./install.sh --token "123456:ABC..." --chat-id "-5390750330" --machine "PC-2"
+./install.sh --token "123456:ABC..." --chat-id "-5390750330" --machine "PC-02"
 ```
 
 Hoặc cài trực tiếp không cần git (macOS/Linux):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "123456:ABC..." --chat-id "-5390750330" --machine "PC-2"
+curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "123456:ABC..." --chat-id "-5390750330" --machine "PC-02"
 ```
 
 **2. Copy `notify.json`** từ máy cũ sang `~/.config/opencode/notify.json` của máy mới (Windows: `C:\Users\<bạn>\.config\opencode\notify.json`). Giữ nguyên `bot_token`, `chat_id`; đừng copy `api_base` nếu muốn dùng cloud.
@@ -148,12 +148,24 @@ node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --test
 - Token là mật khẩu của bot: chuyển qua trình quản lý mật khẩu, USB hay mạng nội bộ — đừng dán vào chat công khai.
 - Muốn tạm im một máy: xóa `bot_token` trong `notify.json` của máy đó, hoặc tắt thông báo chat trên Telegram.
 
-### Hai máy tính: phân biệt thông báo và lệnh
+### Hai máy tính: mỗi máy một bot
 
-- **Thông báo video** dùng chung một bot vẫn ổn: mỗi tin có dòng `🖥️ Máy: <hostname>`. Nếu copy `notify.json` sang máy kia, đừng copy trường `machine` (hoặc đặt tên khác, ví dụ `PC-1` / `PC-2`).
-- **Bridge thì không dùng chung một bot cho hai máy.** Telegram chỉ giao mỗi update cho một nơi, nên hai bridge cùng token sẽ tranh nhau lệnh và bạn không biết máy nào nhận. Tạo **một bot riêng cho mỗi máy** (@BotFather → `/newbot`), mỗi máy một `bridge.json` với `bot_token` riêng, cùng `allowed_user_ids`.
-- Thêm cả hai bot vào nhóm. Khi đó gõ lệnh kèm tên bot: `/status@BotMay1`, `/run@BotMay2 ...`, hoặc nhắc `@BotMay1` trong tin thường. Bridge bỏ qua lệnh gửi cho bot khác, nên không có chuyện cả hai máy cùng trả lời.
-- Nếu chỉ muốn điều khiển một máy, chỉ chạy bridge trên máy đó; máy còn lại chỉ gửi thông báo video.
+Cách dùng cho 2 máy (ở đây là **PC-01** và **PC-02**):
+
+- **Mỗi máy một bot riêng.** Telegram chỉ giao mỗi update cho một nơi, nên hai máy dùng chung một token sẽ tranh nhau lệnh và không biết máy nào nhận. Tạo bot thứ nhất cho PC-01, bot thứ hai cho PC-02 (@BotFather → `/newbot`).
+- **Mỗi máy một `machine`.** Video notification ghi rõ máy: `🖥️ Máy: PC-01` hoặc `🖥️ Máy: PC-02`. Đặt bằng `--machine` khi cài, hoặc sửa `"machine"` trong `notify.json` / `bridge.json`.
+- **Thêm cả hai bot vào nhóm** rồi gọi đúng bot: `/status@BotPC01`, `/run@BotPC02 …`, hoặc nhắc `@BotPC01` trong tin thường. Mỗi bridge bỏ qua lệnh gửi cho bot khác nên không có chuyện hai máy cùng trả lời.
+- **Cài trên Mac (PC-02):**
+
+  ```sh
+  curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "<TOKEN_BOT_PC02>" --chat-id "-5390750330" --machine "PC-02"
+  git clone https://github.com/duycutecun/opencode-task-notify.git
+  cd opencode-task-notify/bridge && chmod +x bridge.sh
+  ./bridge.sh install --owner 7152973094 --machine PC-02
+  ./bridge.sh start
+  ```
+
+- Mỗi máy giữ token bot của riêng nó trong `notify.json`; bridge lấy token đó từ `notify.json` nếu `bridge.json` không ghi `bot_token`.
 
 ## Cấu hình bot (một lần)
 

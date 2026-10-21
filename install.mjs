@@ -10,7 +10,7 @@
  *   node install.mjs
  *   node install.mjs --token 123456:ABC... --chat-id 123456789   # installs and verifies
  *   node install.mjs --token 123456:ABC... --no-setup
- *   node install.mjs --machine "PC-2"
+ *   node install.mjs --machine "PC-02"
  *   node install.mjs --openmontage "C:/path/to/OpenMontage"
  *   node install.mjs --no-openmontage
  *   node install.mjs --config-dir "C:/tmp/test-config" --dry-run

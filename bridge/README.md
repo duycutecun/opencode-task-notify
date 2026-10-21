@@ -30,8 +30,20 @@ cd bridge
 Add `-WorkDir "C:\path\to\project"` to choose another default folder, or `-Autostart`
 to add a shortcut to the Windows Startup folder.
 
-macOS / Linux: the same `bridge.mjs` runs, but the PowerShell helper does not.
-Start it with `node bridge.mjs` (use your process manager of choice for autostart).
+macOS / Linux:
+
+```sh
+cd bridge
+chmod +x bridge.sh
+./bridge.sh install --owner 123456789 --machine PC-02
+./bridge.sh start
+./bridge.sh status
+```
+
+`bridge.sh` reads the bot token from `notify.json` when present and runs the same
+`bridge.mjs`. Use `./bridge.sh logs` and `./bridge.sh stop` to inspect or stop it.
+For autostart, add `node /path/to/bridge.mjs` to launchd (macOS) or a systemd user
+unit (Linux).
 
 ## Commands
 
@@ -61,7 +73,7 @@ Every answer starts with the machine name, so you can tell which computer replie
 ```json
 {
   "bot_token": "",
-  "machine": "PC-1",
+  "machine": "PC-01",
   "allowed_user_ids": ["123456789"],
   "workdir": "C:/Users/Minh/opencode-workspace",
   "auto_approve": true,
@@ -97,18 +109,20 @@ and let the hostname fill in).
 
 The bridge is different: **do not run two bridges with the same bot token.**
 Telegram delivers each update to one poller only, so commands would go to a random
-machine and the other machine would never see them. Use one bot per computer:
+machine and the other machine would never see them. Use one bot per computer
+(one bridge per bot):
 
-1. In @BotFather, create a second bot (`/newbot`) for the second computer.
-2. Put its token in that computer's `bridge.json` (`bot_token`), with the same
-   `allowed_user_ids`.
+1. In @BotFather, create a bot for each computer (`/newbot`). Name them so they are
+   easy to tell apart in Telegram, for example `PC-01` and `PC-02`.
+2. Put each token in that computer's `bridge.json` (`bot_token`), with the same
+   `allowed_user_ids` and a different `machine` name.
 3. Add both bots to the group. Address commands explicitly:
-   `/status@BotPC1`, `/run@BotPC2 …`, or mention `@BotPC1` in plain text.
+   `/status@BotPC01`, `/run@BotPC02 …`, or mention `@BotPC01` in plain text.
 4. Each bridge ignores commands addressed to the other bot, so only the intended
    computer answers.
 
-If you only need to control one computer, run the bridge on that one only; the other
-continues to send video notifications.
+On the Mac, install and start the bridge with `./bridge.sh install ...` and
+`./bridge.sh start` as shown above.
 
 ## Security
 

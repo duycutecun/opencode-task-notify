@@ -10,7 +10,7 @@
   .\install.ps1 -Token "123456:ABC..." -ChatId "987654321"
 
 .EXAMPLE
-  .\install.ps1 -Token "123456:ABC..." -ChatId "987654321" -Machine "PC-1"
+  .\install.ps1 -Token "123456:ABC..." -ChatId "987654321" -Machine "PC-01"
 
 .EXAMPLE
   .\install.ps1 -OpenMontage "D:\Tools\OpenMontage"
