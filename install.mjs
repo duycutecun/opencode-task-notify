@@ -96,6 +96,7 @@ function agentsBlock() {
     "- Chỉ thông báo **video thành phẩm** (final.mp4 hoặc file tôi yêu cầu). Không thông báo preview, draft, hay từng lần render thử.",
     "- Gửi **một** tin cho mỗi video, ngay khi file tồn tại và có dung lượng > 0. Không chờ review chất lượng trừ khi tôi yêu cầu.",
     "- Mặc định script gửi kèm video: file ≤ 50 MB gửi nguyên, file lớn hơn thì nén preview 720p (cần ffmpeg). Cần chỉ tin nhắn thì thêm `--no-attach`.",
+    "- Nếu `notify.json` có `api_base` trỏ về Bot API server local (ví dụ `http://127.0.0.1:8081`), script gửi nguyên file tới 2 GB bằng `file:///`, không nén.",
     "- Telegram Bot API không cho upload file > 50 MB, nên video lớn sẽ đến dưới dạng preview nén kèm đường dẫn gốc — phải nói rõ điều này khi báo lại.",
     "- File không tồn tại (exit code 2): sửa đường dẫn và thử lại một lần. Không báo \"đã xong\" cho file không có thật.",
     "- Nếu video tạo xong mà gửi lỗi, vẫn phải nêu đường dẫn video trong câu trả lời cuối.",
