@@ -69,6 +69,40 @@ Tùy chọn:
 .\install.ps1 -DryRun
 ```
 
+## Cài trên máy thứ hai (cùng một bot)
+
+Một bot Telegram nhắn được cho **nhiều máy** cùng lúc, miễn là các máy dùng chung `bot_token` và `chat_id`. Tin từ máy nào cũng về đúng cuộc trò chuyện đó trên điện thoại bạn.
+
+Điều kiện: tất cả các máy phải dùng **cloud API** (`api.telegram.org`). Nếu một máy bật local Bot API server và gọi `logOut`, bot sẽ rời cloud và các máy còn lại mất thông báo cho tới khi logOut ngược lại.
+
+Chọn một trong ba cách:
+
+**1. Installer với token + chat_id có sẵn** (nhanh nhất):
+
+```powershell
+.\install.ps1 -Token "123456:ABC..." -ChatId "7152973094"
+```
+
+**2. Copy `notify.json`** từ máy cũ sang `~/.config/opencode/notify.json` của máy mới (Windows: `C:\Users\<bạn>\.config\opencode\notify.json`). Giữ nguyên `bot_token`, `chat_id`; đừng copy `api_base` nếu muốn dùng cloud.
+
+**3. Biến môi trường** (không ghi file, phải set lại mỗi phiên):
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN = "123456:ABC..."
+$env:TELEGRAM_CHAT_ID  = "7152973094"
+```
+
+Sau khi cài, kiểm tra:
+
+```powershell
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --whoami
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --test
+```
+
+- Không cần chạy `--setup` trên máy mới nếu đã có `chat_id`; `--setup` dò chat gần nhất nên có thể chọn nhầm nhóm.
+- Token là mật khẩu của bot: chuyển qua trình quản lý mật khẩu, USB hay mạng nội bộ — đừng dán vào chat công khai.
+- Muốn tạm im một máy: xóa `bot_token` trong `notify.json` của máy đó, hoặc tắt thông báo chat trên Telegram.
+
 ## Cấu hình bot (một lần)
 
 1. Mở Telegram, chat với **@BotFather**, gõ `/newbot`, đặt tên → nhận token dạng `123456:ABC-DEF...`.
