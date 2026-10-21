@@ -65,12 +65,29 @@ function Install-Binary {
     if (-not $asset) { throw "No .zip asset in the latest release." }
 
     New-Item -ItemType Directory -Force $binDir | Out-Null
-    $zip = Join-Path $binDir $asset.name
+    $archive = Join-Path $binDir $asset.name
     Write-Host "Downloading $($asset.name) ..."
-    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
-    Expand-Archive -Path $zip -DestinationPath $binDir -Force
-    Remove-Item $zip
-    Write-Host "Installed into $binDir (third-party build — review before trusting it)."
+    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archive
+
+    if ($asset.name -match '\.7z$') {
+        if (Get-Command 7z -ErrorAction SilentlyContinue) {
+            & 7z x -y "-o$binDir" $archive | Out-Null
+        } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+            & python -m py7zr x $archive $binDir
+        } else {
+            throw "A .7z archive needs 7-Zip or Python's py7zr (pip install py7zr)."
+        }
+    } else {
+        Expand-Archive -Path $archive -DestinationPath $binDir -Force
+    }
+    Remove-Item $archive
+    $exe = Get-ChildItem -Path $binDir -Filter "telegram-bot-api.exe" -Recurse | Select-Object -First 1
+    if ($exe) {
+        $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+        Write-Host "Installed $($exe.FullName)"
+        Write-Host "SHA256 $hash"
+    }
+    Write-Host "Third-party build — review the source before trusting it."
 }
 
 function Start-Docker($values) {

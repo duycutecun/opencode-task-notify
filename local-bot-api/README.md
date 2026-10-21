@@ -40,6 +40,8 @@ docker compose --env-file .env up -d
 Máy chưa có Docker/WSL. Có bản build Windows sẵn ở
 <https://github.com/Bezdarnost01/telegram-bot-api-windows/releases> (bên thứ ba, không phải Telegram chính thức — tải về và tự chịu trách nhiệm, hoặc tự build từ <https://github.com/tdlib/telegram-bot-api>).
 
+Bản build Windows phát hành dạng `.7z`, nên cần **7-Zip** hoặc **Python + py7zr** để giải nén (`server.ps1` tự dùng cái có sẵn; `pip install py7zr` là đủ nếu chưa có 7-Zip).
+
 ```powershell
 # tải + giải nén bản build vào local-bot-api\bin\
 .\server.ps1 install -Download
@@ -103,6 +105,8 @@ Sau đó bot lại nhận lệnh từ cloud như cũ.
 .\server.ps1 stop
 .\server.ps1 start
 ```
+
+Sau khi khởi động lại máy, server không tự chạy — mở PowerShell và gọi `.\server.ps1 start` (hoặc tạo shortcut tới lệnh đó trong thư mục Startup nếu muốn tự động).
 
 ## Lưu ý
 
