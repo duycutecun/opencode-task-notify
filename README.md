@@ -1,0 +1,182 @@
+# task-notify
+
+Skill cho [OpenCode](https://opencode.ai): khi AI làm xong việc, điện thoại bạn rung.
+
+Gửi tin nhắn Telegram khi agent hoàn thành task, khi render xong video, khi build fail, hoặc khi đang chờ bạn quyết định — kèm đường dẫn file để bạn mở kiểm tra ngay.
+
+## Tin nhắn trông thế nào
+
+Task thường:
+
+```
+✅ Fixed login race
+
+Retry once on 409, 42/42 tests pass.
+
+my-app · 17:05 21-10
+OpenCode
+```
+
+Video xong:
+
+```
+🎬 Đã tạo xong video Paris Biểu Tình
+
+Lưu tại: C:\Users\Minh\OpenMontage\projects\paris-bieu-tinh\renders\final.mp4
+Dung lượng: 85 MB · 17:05 21-10
+
+Vui lòng kiểm tra.
+```
+
+## Yêu cầu
+
+- OpenCode (V2)
+- Node.js 18 trở lên
+- Telegram trên điện thoại
+
+## Cài đặt
+
+### Windows
+
+```powershell
+git clone https://github.com/duycutecun/opencode-task-notify.git
+cd opencode-task-notify
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+### macOS / Linux
+
+```bash
+git clone https://github.com/duycutecun/opencode-task-notify.git
+cd opencode-task-notify
+chmod +x install.sh
+./install.sh
+```
+
+Installer sẽ:
+
+1. Copy skill vào `~/.config/opencode/skills/task-notify/` (trên Windows: `C:\Users\<bạn>\.config\opencode\skills\task-notify\`).
+2. Thêm luật thông báo vào `~/.config/opencode/AGENTS.md` để **mọi project** đều dùng.
+3. Tạo `~/.config/opencode/notify.json` để chứa bot token.
+4. Nếu tìm thấy OpenMontage (`~/OpenMontage`), vá luôn `AGENT_GUIDE.md` để thông báo chạy ngay ở stage `compose`.
+
+Chạy lại installer bao nhiêu lần cũng được: các block được đánh dấu `<!-- task-notify:start -->` nên chỉ cập nhật, không nhân đôi.
+
+Tùy chọn:
+
+```powershell
+.\install.ps1 -Token "123456:ABC..." -ChatId "987654321"
+.\install.ps1 -OpenMontage "D:\Tools\OpenMontage"
+.\install.ps1 -NoOpenMontage
+.\install.ps1 -DryRun
+```
+
+## Cấu hình bot (một lần)
+
+1. Mở Telegram, chat với **@BotFather**, gõ `/newbot`, đặt tên → nhận token dạng `123456:ABC-DEF...`.
+2. Dán token vào `~/.config/opencode/notify.json`:
+
+   ```json
+   {
+     "bot_token": "123456:ABC-DEF...",
+     "chat_id": "",
+     "signature": "OpenCode"
+   }
+   ```
+
+   Hoặc chạy installer với `-Token "..."` để nó ghi hộ.
+
+3. Bấm **Start** trong chat với bot vừa tạo (bot không nhắn được cho người chưa bấm Start).
+4. Chạy setup — nó tự tìm `chat_id`, lưu lại và gửi tin test:
+
+   ```powershell
+   node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --setup
+   ```
+
+Nếu dùng nhóm Telegram: thêm bot vào nhóm, gửi một tin trong nhóm, rồi chạy `--setup`.
+
+## Dùng tay
+
+```sh
+# task xong
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --title "Deploy xong" "Production đã chạy bản mới."
+
+# task fail
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --status fail --title "Build hỏng" "Thiếu DATABASE_URL."
+
+# cần bạn quyết định
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --status blocked --title "Chọn cách nào?" "1) Redis 2) Postgres. Trả lời 1 hoặc 2."
+
+# video xong (nhận file hoặc cả thư mục project)
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --video "$HOME/OpenMontage/projects/paris-bieu-tinh/renders/final.mp4" --name "Paris Biểu Tình"
+
+# xem trước nội dung, không gửi
+node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --dry-run --video "$HOME/OpenMontage/projects/paris-bieu-tinh"
+```
+
+`$HOME` hoạt động trong cả PowerShell và bash. Trên Windows bạn cũng có thể dùng đường dẫn tuyệt đối mà installer đã ghi vào `AGENTS.md`.
+
+Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `--name`, `--chat`, `--test`, `--setup`, `--whoami`, `--dry-run`, `--json`, `--help`.
+
+## Cách agent dùng
+
+- `skills/task-notify/SKILL.md` dạy agent khi nào nên gửi, viết nội dung thế nào, và xử lý lỗi ra sao.
+- Block trong `AGENTS.md` là luật cứng: xong task → gọi script trước khi trả lời.
+- Block trong `AGENT_GUIDE.md` của OpenMontage: render xong `final.mp4` → gửi tin kèm đường dẫn, ngay trong stage `compose`.
+
+Nguyên tắc chung: **một tin cho một việc**, chỉ báo thành phẩm, không dán stack trace hay token, gửi lỗi thì không được làm fail task.
+
+## Cấu hình nâng cao
+
+| Biến / trường | Ý nghĩa |
+|---|---|
+| `bot_token` | Token từ @BotFather |
+| `chat_id` | ID chat/nhóm nhận tin (tự tìm khi chạy `--setup`) |
+| `signature` | Dòng chữ nhỏ cuối tin, mặc định `OpenCode` |
+| `TASK_NOTIFY_CONFIG` | Đổi đường dẫn file config |
+| `TELEGRAM_BOT_TOKEN` | Token qua biến môi trường (ưu tiên hơn file) |
+| `TELEGRAM_CHAT_ID` | Chat id qua biến môi trường |
+
+File `notify.json` chứa secret: đừng commit, đừng chia sẻ. Trên macOS/Linux installer đặt quyền `600`.
+
+## Gỡ cài đặt
+
+```powershell
+# Windows
+Remove-Item -Recurse -Force "$HOME\.config\opencode\skills\task-notify"
+Remove-Item "$HOME\.config\opencode\notify.json"
+```
+
+Sau đó xóa block giữa `<!-- task-notify:start -->` và `<!-- task-notify:end -->` trong `AGENTS.md`, và block `<!-- task-notify:om:start -->` … `om:end` trong `AGENT_GUIDE.md` của OpenMontage.
+
+## Xử lý sự cố
+
+| Hiện tượng | Nguyên nhân / cách sửa |
+|---|---|
+| `Telegram error: Unauthorized` (exit 1) | Token sai hoặc đã bị thu hồi. Tạo token mới với @BotFather. |
+| `No chat found` (exit 2) | Chưa bấm Start với bot, hoặc chưa gửi tin nào cho bot. |
+| Không thấy skill `task-notify` | Mở phiên OpenCode mới — skill được quét lúc khởi động. |
+| `Video not found` (exit 2) | Sai đường dẫn, hoặc render chưa ghi xong file. |
+| Có tin nhưng không kêu | Tin gửi bằng `--silent`, hoặc bạn đã mute bot trong Telegram. |
+| Agent không tự gửi | Kiểm tra block còn trong `AGENTS.md` không, và phiên đã được khởi động lại sau khi cài. |
+
+## Cấu trúc repo
+
+```
+opencode-task-notify/
+├── skills/task-notify/
+│   ├── SKILL.md        # hướng dẫn cho agent
+│   └── notify.mjs      # script gửi Telegram
+├── install.mjs         # logic cài đặt (đa nền tảng)
+├── install.ps1         # wrapper Windows
+├── install.sh          # wrapper macOS/Linux
+└── README.md
+```
+
+## English
+
+A Telegram notification skill for OpenCode. Install with `install.ps1` (Windows) or `install.sh` (macOS/Linux); it copies the skill into your OpenCode config, adds a global rule so agents notify you when work finishes, and hooks OpenMontage so finished renders send the output path. Then create a bot with @BotFather, paste the token into `~/.config/opencode/notify.json`, and run `notify.mjs --setup`.
+
+## License
+
+MIT — xem [LICENSE](LICENSE).
