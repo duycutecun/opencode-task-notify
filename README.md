@@ -67,6 +67,7 @@ Tùy chọn:
 ```powershell
 .\install.ps1 -Token "123456:ABC..." -ChatId "987654321"
 .\install.ps1 -OpenMontage "D:\Tools\OpenMontage"
+.\install.ps1 -ApiBase "http://127.0.0.1:8081"   # dùng local Bot API server
 .\install.ps1 -NoOpenMontage
 .\install.ps1 -DryRun
 ```
@@ -130,7 +131,7 @@ Mặc định `--video` **gửi luôn file video** vào Telegram, không chỉ �
 - `--no-compress`: không nén; file > 50 MB sẽ chỉ gửi tin nhắn.
 - `--dry-run` in ra kế hoạch, ví dụ `[dry-run] 85 MB → attach compressed 720p preview via ffmpeg`.
 
-Giới hạn 50 MB là của **Telegram Bot API cloud** (mọi loại file). Muốn gửi nguyên file 50 MB–2 GB phải tự dựng [local Bot API server](https://core.telegram.org/bots/api#using-a-local-bot-api-server) với `api_id`/`api_hash`, rồi trỏ script sang server đó — ngoài phạm vi repo này.
+Giới hạn 50 MB là của **Telegram Bot API cloud** (mọi loại file). Muốn gửi nguyên file 50 MB–2 GB vào chat, chạy Bot API server local — xem [`local-bot-api/`](local-bot-api/README.md). Khi `api_base` trỏ về server đó, script gửi nguyên video bằng `file:///`, không nén.
 
 Cờ đầy đủ: `--title`, `--status`, `--project`, `--silent`, `--video`, `--name`, `--chat`, `--test`, `--setup`, `--whoami`, `--dry-run`, `--json`, `--help`.
 
@@ -149,6 +150,7 @@ Nguyên tắc chung: **một tin cho một việc**, chỉ báo thành phẩm, k
 | `bot_token` | Token từ @BotFather |
 | `chat_id` | ID chat/nhóm nhận tin (tự tìm khi chạy `--setup`) |
 | `signature` | Dòng chữ nhỏ cuối tin, mặc định `OpenCode` |
+| `api_base` | Địa chỉ Bot API server, mặc định `https://api.telegram.org`; đặt `http://127.0.0.1:8081` để gửi file tới 2 GB qua server local |
 | `TASK_NOTIFY_CONFIG` | Đổi đường dẫn file config |
 | `TELEGRAM_BOT_TOKEN` | Token qua biến môi trường (ưu tiên hơn file) |
 | `TELEGRAM_CHAT_ID` | Chat id qua biến môi trường |
@@ -191,6 +193,10 @@ opencode-task-notify/
 ├── skills/task-notify/
 │   ├── SKILL.md        # hướng dẫn cho agent
 │   └── notify.mjs      # script gửi Telegram
+├── local-bot-api/      # server local để gửi video > 50 MB
+│   ├── README.md
+│   ├── docker-compose.yml
+│   └── server.ps1
 ├── install.mjs         # logic cài đặt (đa nền tảng)
 ├── install.ps1         # wrapper Windows
 ├── install.sh          # wrapper macOS/Linux

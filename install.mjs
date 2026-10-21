@@ -32,6 +32,7 @@ const slash = (p) => p.replace(/\\/g, "/");
 const dryRun = has("--dry-run");
 const token = val("--token");
 const chatId = val("--chat-id");
+const apiBase = val("--api-base");
 const openMontage = path.resolve(val("--openmontage", path.join(os.homedir(), "OpenMontage")));
 const skipOpenMontage = has("--no-openmontage");
 
@@ -169,6 +170,7 @@ function writeConfig() {
   const before = JSON.stringify(config);
   if (token) config.bot_token = token;
   if (chatId) config.chat_id = chatId;
+  if (apiBase) config.api_base = apiBase;
   if (!config.signature) config.signature = "OpenCode";
   if (!("bot_token" in config)) config.bot_token = "";
   if (!("chat_id" in config)) config.chat_id = "";

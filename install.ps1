@@ -16,6 +16,7 @@
 param(
     [string]$Token,
     [string]$ChatId,
+    [string]$ApiBase,
     [string]$OpenMontage,
     [string]$ConfigDir,
     [switch]$NoOpenMontage,
@@ -33,6 +34,7 @@ $arguments = @((Join-Path $PSScriptRoot "install.mjs"))
 
 if ($Token) { $arguments += @("--token", $Token) }
 if ($ChatId) { $arguments += @("--chat-id", $ChatId) }
+if ($ApiBase) { $arguments += @("--api-base", $ApiBase) }
 if ($OpenMontage) { $arguments += @("--openmontage", $OpenMontage) }
 if ($ConfigDir) { $arguments += @("--config-dir", $ConfigDir) }
 if ($NoOpenMontage) { $arguments += "--no-openmontage" }

@@ -74,6 +74,7 @@ Rules:
 - `--video` accepts a **file** or a **project folder** — for a folder it picks the newest `.mp4/.mov/.webm/.mkv/.m4v` inside, so pointing at `projects/<id>` also works.
 - By default the script **uploads the video into the chat**: directly when it is under Telegram's 50 MB upload cap, otherwise it compresses a 720p preview with `ffmpeg` and sends that, keeping the full path in the caption. Use `--no-attach` for a text-only ping, or `--no-compress` to skip the preview.
 - Telegram's Bot API cannot upload files over 50 MB without a local Bot API server, so a large `final.mp4` always arrives as a compressed preview plus the original path — say so when reporting back.
+- If `api_base` in `notify.json` points at a local Bot API server (e.g. `http://127.0.0.1:8081`), the script sends the **original** file with a `file:///` URI instead, up to 2 GB, and skips compression entirely. Check `--whoami` to see which endpoint is active.
 - `--name` sets the video title. Without it the script falls back to the file name, and to the project folder name when the file is a generic `final.mp4` / `preview.mp4` / `render.mp4`.
 - Announce the deliverable (`final.mp4` or the file the user asked for). Do not spam previews, intermediate renders, or drafts unless the user asked to be told about them.
 - Send **once** per finished video, as soon as the file is written and non-empty. Do not wait for quality review unless the user asked for a review-gated notification.

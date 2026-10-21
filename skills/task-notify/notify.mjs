@@ -70,6 +70,7 @@ function parseArgs(argv) {
     else if (arg === "--attach") opts.attach = true;
     else if (arg === "--no-attach") opts.attach = false;
     else if (arg === "--no-compress") opts.compress = false;
+    else if (arg === "--api-base") opts.apiBase = argv[++i];
     else if (arg === "--chat") opts.chat = argv[++i];
     else if (arg === "--silent") opts.silent = true;
     else if (arg === "--json") opts.json = true;
@@ -91,7 +92,7 @@ function usage() {
       "       node notify.mjs --whoami    show the bot and chat_id in use",
       "       node notify.mjs --test      send a test message",
       "       node notify.mjs --dry-run   print the formatted message without sending",
-      "       node notify.mjs --video <file-or-folder> [--name <video title>] [--no-attach]",
+      "       node notify.mjs --video <file-or-folder> [--name <video title>] [--no-attach] [--api-base <url>]",
       "                                   announce a finished video (newest mp4 if a folder is given)",
       "                                   sends the video itself when it fits in Telegram's 50 MB upload,",
       "                                   otherwise a compressed 720p preview; --no-attach sends text only",
@@ -106,8 +107,23 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;");
 }
 
+let API_BASE = "https://api.telegram.org";
+
+function isLocalBase() {
+  return /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?(\/|$)/i.test(API_BASE);
+}
+
+function maxUploadBytes() {
+  return isLocalBase() ? 1900 * 1024 * 1024 : 49 * 1024 * 1024;
+}
+
+function fileUri(file) {
+  const normalized = file.replace(/\\/g, "/").replace(/^\/+/, "");
+  return `file:///${encodeURI(normalized)}`;
+}
+
 async function telegram(token, method, payload) {
-  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+  const response = await fetch(`${API_BASE}/bot${token}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload ?? {}),
@@ -262,7 +278,7 @@ async function send(token, chatId, text, silent) {
   });
 }
 
-const UPLOAD_LIMIT = 49 * 1024 * 1024; // Telegram Bot API caps uploads at 50 MB
+const CLOUD_LIMIT = 49 * 1024 * 1024; // Telegram cloud Bot API caps uploads at 50 MB
 
 function compressPreview(file) {
   const out = path.join(os.tmpdir(), `task-notify-preview-${process.pid}.mp4`);
@@ -281,7 +297,7 @@ function compressPreview(file) {
       ],
       { stdio: "ignore" },
     );
-    if (result.status === 0 && fs.existsSync(out) && fs.statSync(out).size <= UPLOAD_LIMIT) {
+    if (result.status === 0 && fs.existsSync(out) && fs.statSync(out).size <= CLOUD_LIMIT) {
       return out;
     }
   }
@@ -298,7 +314,7 @@ async function sendVideoFile(token, chatId, file, caption, silent) {
   form.set("disable_notification", String(Boolean(silent)));
   form.set("video", new Blob([fs.readFileSync(file)], { type: "video/mp4" }), path.basename(file));
 
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
+  const response = await fetch(`${API_BASE}/bot${token}/sendVideo`, {
     method: "POST",
     body: form,
     signal: AbortSignal.timeout(300000),
@@ -308,6 +324,18 @@ async function sendVideoFile(token, chatId, file, caption, silent) {
     throw new Error(`Telegram video upload failed: ${data?.description ?? response.status}`);
   }
   return data.result;
+}
+
+// Local Bot API server: hand it a file URI instead of uploading the bytes.
+async function sendVideoLocal(token, chatId, file, caption, silent) {
+  return telegram(token, "sendVideo", {
+    chat_id: chatId,
+    video: fileUri(file),
+    caption,
+    parse_mode: "HTML",
+    supports_streaming: true,
+    disable_notification: Boolean(silent),
+  });
 }
 
 async function discoverChatId(token) {
@@ -332,6 +360,10 @@ async function main() {
   const token = process.env.TELEGRAM_BOT_TOKEN || config.bot_token || "";
   let chatId = opts.chat || process.env.TELEGRAM_CHAT_ID || config.chat_id || "";
 
+  API_BASE = (opts.apiBase || process.env.TELEGRAM_API_BASE || config.api_base || "https://api.telegram.org")
+    .trim()
+    .replace(/\/+$/, "");
+
   if (opts.help) {
     usage();
     return 0;
@@ -345,14 +377,18 @@ async function main() {
     const resolved = resolveVideo(opts);
     console.log(buildVideoMessage(opts, resolved));
     const attach = opts.attach !== false;
+    const limit = maxUploadBytes();
     const plan = !attach
       ? "text only (--no-attach)"
-      : resolved.size <= UPLOAD_LIMIT
-        ? "attach video"
+      : resolved.size <= limit
+        ? isLocalBase()
+          ? "attach original via local Bot API server (file URI, no upload)"
+          : "attach video"
         : opts.compress === false
-          ? "over 50 MB, cannot attach"
+          ? `over ${formatBytes(limit)}, cannot attach`
           : "attach compressed 720p preview via ffmpeg";
     console.log(`\n[dry-run] ${formatBytes(resolved.size)} \u2192 ${plan}`);
+    console.log(`[dry-run] api base: ${API_BASE}`);
     return 0;
   }
 
@@ -410,6 +446,7 @@ async function main() {
     const me = await telegram(token, "getMe", {});
     console.log(`Bot: @${me.username}`);
     console.log(`chat_id: ${chatId || "(not set — run --setup)"}`);
+    console.log(`api base: ${API_BASE}${isLocalBase() ? " (local — uploads up to 2000 MB)" : ""}`);
     console.log(`config: ${configPath}`);
     return 0;
   }
@@ -436,11 +473,24 @@ async function main() {
     const caption = buildVideoMessage(opts, resolved);
 
     if (opts.attach !== false) {
+      const limit = maxUploadBytes();
       let file = resolved.file;
       let compressed = false;
-      if (fs.statSync(file).size > UPLOAD_LIMIT) {
+
+      // Local Bot API server can read the file straight off disk (up to 2000 MB).
+      if (isLocalBase() && resolved.size <= limit) {
+        try {
+          const result = await sendVideoLocal(token, chatId, file, caption, opts.silent);
+          console.log(`Sent original video via ${API_BASE} (message ${result.message_id})`);
+          return 0;
+        } catch (error) {
+          console.error(`Local Bot API send failed (${error.message}); falling back.`);
+        }
+      }
+
+      if (fs.statSync(file).size > CLOUD_LIMIT) {
         if (opts.compress === false) {
-          console.error("Video is over Telegram's 50 MB upload limit; sending text only (--no-compress).");
+          console.error("Video is over Telegram's 50 MB cloud limit; sending text only (--no-compress).");
         } else {
           const preview = compressPreview(resolved.file);
           if (preview) {
@@ -452,7 +502,7 @@ async function main() {
         }
       }
 
-      if (fs.statSync(file).size <= UPLOAD_LIMIT) {
+      if (fs.statSync(file).size <= CLOUD_LIMIT) {
         try {
           const result = await sendVideoFile(token, chatId, file, caption, opts.silent);
           console.log(

@@ -3,3 +3,9 @@ notify.json
 .DS_Store
 Thumbs.db
 *.log
+
+local-bot-api/.env
+local-bot-api/data/
+local-bot-api/bin/
+local-bot-api/*.log
+local-bot-api/*.pid
