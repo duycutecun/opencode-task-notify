@@ -19,15 +19,19 @@ macOS / Linux:
 curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "123456:ABC..." --chat-id "7152973094"
 ```
 
-Hai script này tải repo về thư mục tạm, chạy installer rồi tự dọn — không cần `git`, không để lại file thừa.
+Hai script này tải repo về thư mục tạm, chạy installer rồi tự dọn — không cần `git`, không để lại file thừa. Khi có `-Token`, installer tự kiểm tra token, lưu `chat_id` và gửi tin test luôn.
 
 ## Dán link cho AI trên máy mới
 
-Gửi cho AI (OpenCode, Claude, Cursor...) đoạn này:
+Gửi cho AI (OpenCode, Claude, Cursor...) đoạn này, chỉ cần thay token:
 
-> Cài task-notify từ https://github.com/duycutecun/opencode-task-notify theo `AGENTS.md` trong repo. Bot token: `<token>`. Chat id: `7152973094`.
+> Cài task-notify từ https://github.com/duycutecun/opencode-task-notify theo `AGENTS.md` trong repo. Bot token: `<token>`. Chat id của tôi: `7152973094`.
 
-AI sẽ đọc `AGENTS.md`, clone repo, chạy installer, kiểm tra bằng `--whoami` và `--test`, rồi nhắc bạn khởi động lại OpenCode. Nếu không muốn đưa token vào chat, copy `notify.json` từ máy cũ sang trước, rồi bảo AI cài không cần token.
+AI sẽ đọc `AGENTS.md`, clone repo, chạy installer với token, installer tự gửi tin test, rồi AI nhắc bạn khởi động lại OpenCode.
+
+Không cần chat id cũng được: bỏ dòng đó, installer sẽ tự dò chat gần nhất. Nếu báo `No chat found`, nhắn một câu bất kỳ cho bot rồi bảo AI chạy lại `--setup`. Cách này tiện hơn nhưng thêm một bước.
+
+Nếu không muốn đưa token vào chat, copy `notify.json` từ máy cũ sang trước, rồi bảo AI cài không cần token.
 
 ## Phạm vi
 
@@ -80,7 +84,8 @@ Installer sẽ:
 1. Copy skill vào `~/.config/opencode/skills/task-notify/` (trên Windows: `C:\Users\<bạn>\.config\opencode\skills\task-notify\`).
 2. Thêm luật **chỉ báo khi tạo xong video** vào `~/.config/opencode/AGENTS.md` để **mọi project** đều dùng.
 3. Tạo `~/.config/opencode/notify.json` để chứa bot token.
-4. Nếu tìm thấy OpenMontage (`~/OpenMontage`), vá luôn `AGENT_GUIDE.md` để thông báo chạy ngay ở stage `compose`.
+4. Nếu có `-Token`, kiểm tra token, lưu `chat_id` và gửi tin test ngay.
+5. Nếu tìm thấy OpenMontage (`~/OpenMontage`), vá luôn `AGENT_GUIDE.md` để thông báo chạy ngay ở stage `compose`.
 
 Chạy lại installer bao nhiêu lần cũng được: các block được đánh dấu `<!-- task-notify:start -->` nên chỉ cập nhật, không nhân đôi.
 

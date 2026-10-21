@@ -48,13 +48,15 @@ chmod +x install.sh
 
 The installer copies the skill to `~/.config/opencode/skills/task-notify/`, adds a marked rule block to `~/.config/opencode/AGENTS.md`, and writes `~/.config/opencode/notify.json`. It is safe to run more than once.
 
-If the token is not available yet, run the installer without `-Token` (the skill and rule are still installed), then tell the user to provide the token and run:
+When `--token` is present, the installer also validates the token, saves it, and sends a test message in one step. No separate `--setup` call is needed.
+
+If the token is not available yet, run the installer without it (the skill and rule are still installed), then tell the user to provide the token and run:
 
 ```sh
 node "$HOME/.config/opencode/skills/task-notify/notify.mjs" --setup --token "<token>" --chat "<chat id>"
 ```
 
-Omit `--chat` to auto-discover the chat after the user sends a message to the bot.
+Omit `--chat` to auto-discover the chat. If setup reports `No chat found`, ask the user to send any message to the bot, then run the same command again. Pass `--no-setup` to the installer if you do not want it to contact Telegram.
 
 ## 5. Verify
 

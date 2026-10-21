@@ -8,7 +8,8 @@
  *
  * Usage:
  *   node install.mjs
- *   node install.mjs --token 123456:ABC... --chat-id 123456789
+ *   node install.mjs --token 123456:ABC... --chat-id 123456789   # installs and verifies
+ *   node install.mjs --token 123456:ABC... --no-setup
  *   node install.mjs --openmontage "C:/path/to/OpenMontage"
  *   node install.mjs --no-openmontage
  *   node install.mjs --config-dir "C:/tmp/test-config" --dry-run
@@ -17,6 +18,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -30,7 +32,8 @@ const val = (name, fallback = "") => {
 const slash = (p) => p.replace(/\\/g, "/");
 
 const dryRun = has("--dry-run");
-const token = val("--token");
+const noSetup = has("--no-setup");
+const token = val("--token") || process.env.TELEGRAM_BOT_TOKEN || "";
 const chatId = val("--chat-id");
 const apiBase = val("--api-base");
 const openMontage = path.resolve(val("--openmontage", path.join(os.homedir(), "OpenMontage")));
@@ -209,15 +212,31 @@ function main() {
   }
 
   console.log("");
-  console.log("Next steps:");
-  if (!token) {
-    console.log("  1. Message @BotFather on Telegram → /newbot → copy the token.");
-    console.log(`  2. Put it in ${path.join(configDir, "notify.json")} as "bot_token".`);
-    console.log("  3. Press Start in the chat with your new bot.");
-    console.log(`  4. Run: node "${scriptPath}" --setup`);
+  if (token && !dryRun && !noSetup) {
+    const setupArgs = [path.join(skillDir, "notify.mjs"), "--setup", "--token", token];
+    if (chatId) setupArgs.push("--chat", chatId);
+    console.log("Validating the token and sending a test message...");
+    const result = spawnSync(process.execPath, setupArgs, {
+      stdio: "inherit",
+      env: { ...process.env, TASK_NOTIFY_CONFIG: path.join(configDir, "notify.json") },
+    });
+    if (result.status !== 0) {
+      console.log("");
+      console.log("! Could not finish setup automatically.");
+      console.log("  Open Telegram, send any message to your bot, then run:");
+      console.log(`  node "${scriptPath}" --setup --token "<token>"` + (chatId ? "" : " --chat \"<chat id>\""));
+    }
   } else {
-    console.log("  1. Press Start in the chat with your bot, then run:");
-    console.log(`     node "${scriptPath}" --setup`);
+    console.log("Next steps:");
+    if (!token) {
+      console.log("  1. Message @BotFather on Telegram → /newbot → copy the token.");
+      console.log(`  2. Put it in ${path.join(configDir, "notify.json")} as "bot_token".`);
+      console.log("  3. Press Start in the chat with your new bot.");
+      console.log(`  4. Run: node "${scriptPath}" --setup`);
+    } else {
+      console.log("  1. Press Start in the chat with your bot, then run:");
+      console.log(`     node "${scriptPath}" --setup`);
+    }
   }
   console.log(`  Verify anytime with: node "${scriptPath}" --whoami`);
 }
