@@ -113,7 +113,19 @@ Chọn một trong ba cách:
 **1. Installer với token + chat_id có sẵn** (nhanh nhất):
 
 ```powershell
-.\install.ps1 -Token "123456:ABC..." -ChatId "7152973094"
+.\install.ps1 -Token "123456:ABC..." -ChatId "-5390750330" -Machine "PC-2"
+```
+
+macOS / Linux:
+
+```sh
+./install.sh --token "123456:ABC..." --chat-id "-5390750330" --machine "PC-2"
+```
+
+Hoặc cài trực tiếp không cần git (macOS/Linux):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/duycutecun/opencode-task-notify/main/bootstrap.sh | sh -s -- --token "123456:ABC..." --chat-id "-5390750330" --machine "PC-2"
 ```
 
 **2. Copy `notify.json`** từ máy cũ sang `~/.config/opencode/notify.json` của máy mới (Windows: `C:\Users\<bạn>\.config\opencode\notify.json`). Giữ nguyên `bot_token`, `chat_id`; đừng copy `api_base` nếu muốn dùng cloud.

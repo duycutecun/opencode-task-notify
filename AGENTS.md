@@ -46,7 +46,7 @@ chmod +x install.sh
 ./install.sh --token "<token>" --chat-id "<chat id>"
 ```
 
-The installer copies the skill to `~/.config/opencode/skills/task-notify/`, adds a marked rule block to `~/.config/opencode/AGENTS.md`, and writes `~/.config/opencode/notify.json`. It is safe to run more than once.
+The installer copies the skill to `~/.config/opencode/skills/task-notify/`, adds a marked rule block to `~/.config/opencode/AGENTS.md`, and writes `~/.config/opencode/notify.json`. It is safe to run more than once. On a second computer, also pass `--machine "<name>"` (PowerShell: `-Machine "<name>"`) so its notifications are distinguishable.
 
 When `--token` is present, the installer also validates the token, saves it, and sends a test message in one step. No separate `--setup` call is needed.
 

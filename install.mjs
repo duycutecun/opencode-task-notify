@@ -10,6 +10,7 @@
  *   node install.mjs
  *   node install.mjs --token 123456:ABC... --chat-id 123456789   # installs and verifies
  *   node install.mjs --token 123456:ABC... --no-setup
+ *   node install.mjs --machine "PC-2"
  *   node install.mjs --openmontage "C:/path/to/OpenMontage"
  *   node install.mjs --no-openmontage
  *   node install.mjs --config-dir "C:/tmp/test-config" --dry-run
@@ -35,6 +36,7 @@ const dryRun = has("--dry-run");
 const noSetup = has("--no-setup");
 const token = val("--token") || process.env.TELEGRAM_BOT_TOKEN || "";
 const chatId = val("--chat-id");
+const machine = val("--machine");
 const apiBase = val("--api-base");
 const openMontage = path.resolve(val("--openmontage", path.join(os.homedir(), "OpenMontage")));
 const skipOpenMontage = has("--no-openmontage");
@@ -166,6 +168,7 @@ function writeConfig() {
   const before = JSON.stringify(config);
   if (token) config.bot_token = token;
   if (chatId) config.chat_id = chatId;
+  if (machine) config.machine = machine;
   if (apiBase) config.api_base = apiBase;
   if (!config.signature) config.signature = "OpenCode";
   if (!("bot_token" in config)) config.bot_token = "";
